@@ -41,7 +41,7 @@
             <tbody>
             @forelse($products as $p)
                 <tr>
-                    <td><strong class="block text-slate-950">{{$p->name}}</strong><span class="font-mono text-sm text-slate-500">{{$p->code}}</span></td>
+                    <td><div class="flex items-center gap-3"><x-product-image :product="$p" /><div><strong class="block text-slate-950">{{$p->name}}</strong><span class="font-mono text-sm text-slate-500">{{$p->code}}</span></div></div></td>
                     <td><span class="{{$p->product_type->value==='PART'?'badge-blue':($p->product_type->value==='WIP'?'badge-amber':'badge-green')}}">{{$p->product_type->label()}}</span></td>
                     <td class="text-right"><strong class="text-xl text-slate-950">{{\App\Support\Quantity::format($p->balances_sum_quantity ?? 0)}}</strong></td>
                     <td>{{$p->unit->name}}</td>
@@ -76,7 +76,8 @@
             <button type="button" class="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" data-close-modal aria-label="ปิด">✕</button>
         </div>
         <div class="grid gap-5 p-6 sm:grid-cols-2">
-            <label class="sm:col-span-2"><span class="label">สินค้า *</span><select id="receive-product" class="select" name="product_id" required><option value="">— เลือกสินค้า —</option>@foreach($receiptProducts as $p)<option value="{{$p->id}}" data-unit="{{$p->unit->name}}">{{$p->code}} — {{$p->name}}</option>@endforeach</select></label>
+            <label class="sm:col-span-2"><span class="label">สินค้า *</span><select id="receive-product" class="select" name="product_id" required><option value="">— เลือกสินค้า —</option>@foreach($receiptProducts as $p)<option value="{{$p->id}}" data-unit="{{$p->unit->name}}" data-image="{{$p->image_path ? route('products.image',$p) : ''}}">{{$p->code}} — {{$p->name}}</option>@endforeach</select></label>
+            <div id="receive-product-preview" class="hidden sm:col-span-2 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><img class="size-16 rounded-xl border border-slate-200 bg-white object-cover" alt="รูปสินค้าที่เลือก"><div><strong class="block text-slate-900">รูปสินค้าที่เลือก</strong><span class="text-sm text-slate-500">ตรวจสอบรูปก่อนยืนยันรับเข้า</span></div></div>
             <label><span class="label">คลังสินค้า *</span><select class="select" name="warehouse_id" required><option value="">— เลือกคลัง —</option>@foreach($warehouses as $warehouse)<option value="{{$warehouse->id}}">{{$warehouse->code}} — {{$warehouse->name}}</option>@endforeach</select></label>
             <label><span class="label">จำนวนที่รับ *</span><div class="relative"><input class="input pr-20" type="number" name="quantity" min="0.0001" step="0.0001" placeholder="เช่น 100" required><span id="receive-unit" class="absolute right-4 top-3.5 font-semibold text-slate-500">หน่วย</span></div></label>
             <label class="sm:col-span-2"><span class="label">หมายเหตุ</span><textarea class="input" name="note" rows="3" placeholder="เลขที่ใบส่งของ หรือรายละเอียดเพิ่มเติม"></textarea></label>
@@ -93,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dialog = document.getElementById('receive-dialog');
     const product = document.getElementById('receive-product');
     const unit = document.getElementById('receive-unit');
-    const updateUnit = () => unit.textContent = product?.selectedOptions[0]?.dataset.unit || 'หน่วย';
+    const preview = document.getElementById('receive-product-preview');
+    const updateUnit = () => { const selected=product?.selectedOptions[0]; unit.textContent=selected?.dataset.unit || 'หน่วย'; const src=selected?.dataset.image; preview?.classList.toggle('hidden',!src); preview?.classList.toggle('flex',!!src); if(src) preview.querySelector('img').src=src; };
     document.querySelectorAll('[data-open-receive]').forEach(button => button.addEventListener('click', () => {
         if (button.dataset.product) product.value = button.dataset.product;
         updateUnit(); dialog?.showModal();

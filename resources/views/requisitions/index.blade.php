@@ -34,10 +34,10 @@
                 <thead><tr><th>เลขที่ใบเบิก</th><th>ประเภท / รายการ</th><th>ผู้ดำเนินการ</th><th>คลังสินค้า</th><th>วันที่ทำรายการ</th><th>ที่มา</th><th class="text-right">จัดการ</th></tr></thead>
                 <tbody>
                 @forelse($sectionRows as $r)
-                    @php $isAdminCreated = $r->requester->isAdmin(); $canApprove = auth()->user()->isAdmin() && $r->status === \App\Enums\RequisitionStatus::PENDING && ($isAdminCreated || $r->requester_signed_at); @endphp
+                    @php $isAdminCreated = $r->requester->isAdmin(); $canApprove = auth()->user()->isAdmin() && $r->status === \App\Enums\RequisitionStatus::PENDING && ($isAdminCreated || $r->requester_signed_at); $displayProduct = $r->targetProduct ?? $r->items->first()?->product; @endphp
                     <tr>
                         <td><strong class="block whitespace-nowrap text-slate-950">{{$r->request_no}}</strong><span class="{{$r->status->badgeClass()}} mt-1">{{$r->status->label()}}</span></td>
-                        <td><strong class="block text-slate-900">{{$r->request_type->label()}}</strong><span class="text-sm text-slate-500">{{$r->targetProduct ? $r->targetProduct->name.' × '.\App\Support\Quantity::format($r->target_quantity).' '.$r->targetProduct->unit->name : $r->items_count.' รายการ'}}</span></td>
+                        <td><div class="flex items-center gap-3"><x-product-image :product="$displayProduct" size="sm" /><div><strong class="block text-slate-900">{{$r->request_type->label()}}</strong><span class="text-sm text-slate-500">{{$r->targetProduct ? $r->targetProduct->name.' × '.\App\Support\Quantity::format($r->target_quantity).' '.$r->targetProduct->unit->name : $r->items_count.' รายการ'}}</span></div></div></td>
                         <td class="font-semibold text-slate-900">{{$r->requester->name}}</td>
                         <td>{{$r->warehouse->name}}</td>
                         <td class="whitespace-nowrap">{{$r->requested_at->format('d/m/Y H:i')}}</td>

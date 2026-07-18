@@ -6,7 +6,7 @@
 <div class="grid gap-4">
 @forelse($rows as $row)
 <a href="{{route('requisitions.show',$row)}}" class="panel group flex flex-wrap items-center gap-5 p-5 hover:border-blue-300">
-    <div class="grid size-14 place-items-center rounded-2xl {{$row->status->value === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}} text-xl font-bold">{{$row->status->value === 'PENDING' ? '!' : '✓'}}</div>
+    @php($displayProduct = $row->targetProduct ?? $row->items->first()?->product)<x-product-image :product="$displayProduct" size="lg" />
     <div class="min-w-64 flex-1"><div class="flex flex-wrap items-center gap-2"><strong class="text-lg text-slate-950">{{$row->request_no}}</strong><span class="{{$row->status->badgeClass()}}">{{$row->status->value === 'PENDING' ? 'รอตรวจ/จ่าย' : 'อนุมัติแล้ว'}}</span></div><p class="mt-1 font-semibold">{{$row->request_type->label()}} · {{$row->requester->name}}</p><p class="text-slate-500">{{$row->purpose}} · {{$row->warehouse->name}}</p></div>
     <div class="text-right"><p class="font-semibold">{{$row->requested_at->format('d/m/Y H:i')}}</p><span class="font-bold text-blue-600 group-hover:underline">{{$row->status->value === 'PENDING' ? 'ตรวจและอนุมัติ' : 'เปิด/พิมพ์ใบเบิก'}} →</span></div>
 </a>

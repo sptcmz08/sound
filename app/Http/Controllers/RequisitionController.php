@@ -41,7 +41,7 @@ class RequisitionController extends Controller
 
     public function approvals()
     {
-        return view('requisitions.approvals', ['rows' => Requisition::with(['requester', 'targetProduct', 'warehouse'])->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")->latest()->paginate(40), 'pendingCount' => Requisition::where('status', RequisitionStatus::PENDING)->count()]);
+        return view('requisitions.approvals', ['rows' => Requisition::with(['requester', 'targetProduct', 'warehouse', 'items.product'])->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")->latest()->paginate(40), 'pendingCount' => Requisition::where('status', RequisitionStatus::PENDING)->count()]);
     }
 
     public function withdraw()
@@ -86,6 +86,7 @@ class RequisitionController extends Controller
         $data = $request->validate([
             'existing_wip_id' => ['nullable', 'exists:products,id'],
             'wip_name' => ['nullable', 'required_without:existing_wip_id', 'string', 'max:255'],
+            'wip_image' => ['nullable', 'image', 'max:2048'],
             'output_quantity' => ['required', 'decimal:0,4', 'gt:0'],
             'warehouse_id' => ['required', 'exists:warehouses,id'],
             'components' => ['required', 'array', 'min:1'],
@@ -125,6 +126,12 @@ class RequisitionController extends Controller
                 ]);
                 $product->update(['code' => 'WIP-'.now()->format('ymd').'-'.str_pad((string) $product->id, 5, '0', STR_PAD_LEFT)]);
             }
+            if ($request->hasFile('wip_image')) {
+                if ($product->image_path) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image_path);
+                }
+                $product->update(['image_path' => $request->file('wip_image')->store('products', 'public')]);
+            }
             $product->components()->sync(collect($data['components'])->mapWithKeys(fn ($line) => [
                 (int) $line['product_id'] => ['quantity' => $line['quantity']],
             ])->all());
@@ -153,7 +160,7 @@ class RequisitionController extends Controller
     public function issues()
     {
         return view('requisitions.issues', [
-            'rows' => Requisition::with(['requester', 'targetProduct', 'warehouse'])
+            'rows' => Requisition::with(['requester', 'targetProduct', 'warehouse', 'items.product'])
                 ->whereIn('status', [RequisitionStatus::PENDING, RequisitionStatus::APPROVED])
                 ->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")
                 ->latest()->paginate(40),

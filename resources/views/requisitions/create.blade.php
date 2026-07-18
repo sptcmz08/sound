@@ -9,6 +9,7 @@
         'id' => $product->id,
         'code' => $product->code,
         'name' => $product->name,
+        'image' => $product->image_path ? route('products.image', $product) : null,
         'type' => $product->product_type->value,
         'unit' => $product->unit->name,
         'balances' => $product->balances->mapWithKeys(fn ($balance) => [
@@ -147,10 +148,15 @@ function balanceFor(productId) {
     return `<strong class="text-lg text-slate-950">${escapeHtml(balance)}</strong> <span class="text-sm text-slate-500">${escapeHtml(product.unit)}</span>`;
 }
 
+function productPicture(productId) {
+    const product = products.find(item => String(item.id) === String(productId));
+    return product?.image ? `<img src="${product.image}" class="size-12 shrink-0 rounded-xl border border-slate-200 bg-white object-cover" alt="รูปสินค้า">` : `<span class="grid size-12 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-slate-400">▧</span>`;
+}
+
 function renderRows() {
     list.innerHTML = rows.map((row, index) => `
         <div class="grid items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 md:grid-cols-[minmax(0,1fr)_160px_190px_64px]">
-            <label><span class="label md:hidden">สินค้า</span><select class="select bg-white" name="items[${index}][product_id]" onchange="updateProduct(${index}, this.value)" required>${directOptions(row.product_id)}</select></label>
+            <label><span class="label md:hidden">สินค้า</span><div class="flex items-center gap-3">${productPicture(row.product_id)}<select class="select bg-white" name="items[${index}][product_id]" onchange="updateProduct(${index}, this.value)" required>${directOptions(row.product_id)}</select></div></label>
             <div><span class="label md:hidden">สต็อกคงเหลือ</span><div class="rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">${balanceFor(row.product_id)}</div></div>
             <label><span class="label md:hidden">จำนวนที่เบิก</span><input class="input bg-white text-lg font-bold" name="items[${index}][quantity]" type="number" min="0.0001" step="0.0001" value="${escapeHtml(row.quantity || 1)}" oninput="updateQuantity(${index}, this.value)" required></label>
             <button type="button" class="grid min-h-12 place-items-center rounded-xl text-rose-600 hover:bg-rose-50" onclick="removeRow(${index})" title="ลบรายการ" aria-label="ลบรายการ"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7h12m-9 0V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg></button>
@@ -185,7 +191,7 @@ function render() {
 function preview() {
     const product = products.find(item => String(item.id) === target.value);
     document.getElementById('bom-preview').innerHTML = product
-        ? '<strong>ส่วนประกอบต่อ 1 ชิ้น:</strong> ' + product.components.map(component => `${escapeHtml(component.code)} ${escapeHtml(component.name)} × ${escapeHtml(component.quantity)} ${escapeHtml(component.unit)}`).join(', ')
+        ? `<div class="flex items-center gap-3">${productPicture(product.id)}<div><strong class="block">${escapeHtml(product.code)} — ${escapeHtml(product.name)}</strong><span>ส่วนประกอบต่อ 1 ชิ้น: ${product.components.map(component => `${escapeHtml(component.code)} ${escapeHtml(component.name)} × ${escapeHtml(component.quantity)} ${escapeHtml(component.unit)}`).join(', ')}</span></div></div>`
         : 'กรุณาเลือกรายการ ระบบจะแสดงส่วนประกอบที่ต้องใช้ตรงนี้';
 }
 

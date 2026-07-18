@@ -15,6 +15,16 @@
     @csrf @if($product->exists) @method('PUT') @endif
     <section class="panel"><div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">ข้อมูลสินค้า</h3><p class="mt-1 text-slate-500">ไม่ใช้ Barcode — แอดมินเลือกรายการและคีย์จำนวนโดยตรง</p></div></div>
         <div class="panel-body grid gap-5 md:grid-cols-2">
+            <div class="md:col-span-2">
+                <span class="label">รูปสินค้า</span>
+                <div class="flex flex-wrap items-center gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div class="relative">
+                        <x-product-image :product="$product" size="xl" id="current-product-image" />
+                        <img id="new-product-image" class="hidden size-24 rounded-xl border border-blue-300 bg-white object-cover shadow-sm" alt="ตัวอย่างรูปสินค้าใหม่">
+                    </div>
+                    <label class="min-w-64 flex-1"><span class="font-bold text-slate-900">เลือกรูปจากเครื่อง</span><input id="product-image-input" class="mt-2 block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2.5 file:font-semibold file:text-white hover:file:bg-blue-700" type="file" name="image" accept="image/jpeg,image/png,image/webp"><span class="mt-2 block text-sm text-slate-500">รองรับ JPG, PNG และ WEBP ขนาดไม่เกิน 2 MB</span></label>
+                </div>
+            </div>
             <label><span class="label">รหัสสินค้า *</span><input name="code" class="input" value="{{old('code',$product->code)}}" required></label>
             <label><span class="label">ชื่อสินค้า *</span><input name="name" class="input" value="{{old('name',$product->name)}}" required></label>
             <label><span class="label">ประเภท *</span><select name="product_type" id="product-type" class="select" required><option value="PART" @selected($currentType==='PART')>อะไหล่ทั่วไป</option><option value="WIP" @selected($currentType==='WIP')>วิช (งานระหว่างประกอบ)</option><option value="FG" @selected($currentType==='FG')>FG (สินค้าพร้อมขาย)</option></select></label>
@@ -35,6 +45,8 @@
 @push('scripts')
 <script>
 const products = {!! $componentJson !!};
+const imageInput=document.getElementById('product-image-input'), newImage=document.getElementById('new-product-image'), currentImage=document.getElementById('current-product-image');
+imageInput?.addEventListener('change',()=>{const file=imageInput.files?.[0];if(!file)return;newImage.src=URL.createObjectURL(file);newImage.classList.remove('hidden');currentImage?.classList.add('hidden')});
 let rows = @json($oldComponents); const list=document.getElementById('component-list'), type=document.getElementById('product-type'), panel=document.getElementById('recipe-panel');
 function options(selected){const allowed=products.filter(p=>type.value==='FG'||p.type==='PART');return '<option value="">เลือกส่วนประกอบ</option>'+allowed.map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${p.code} — ${p.name} (${p.type==='WIP'?'วิช':'อะไหล่'})</option>`).join('')}
 function render(){panel.classList.toggle('hidden',type.value==='PART');document.getElementById('recipe-help').textContent=type.value==='WIP'?'วิชใช้อะไหล่ทั่วไปเป็นส่วนประกอบ':'FG ใช้ได้ทั้งอะไหล่และวิช';list.innerHTML=rows.map((r,i)=>`<div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_220px_auto]"><select class="select" name="components[${i}][product_id]" required>${options(r.product_id)}</select><input class="input" type="number" min="0.0001" step="0.0001" name="components[${i}][quantity]" value="${r.quantity||1}" placeholder="จำนวนต่อ 1 ชิ้น" required><button type="button" class="btn-danger" onclick="rows.splice(${i},1);render()">ลบ</button></div>`).join('')||'<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีส่วนประกอบ กด “เพิ่มส่วนประกอบ”</div>'}

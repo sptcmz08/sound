@@ -21,6 +21,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -249,6 +250,26 @@ class StockSystemTest extends TestCase
         $this->assertSame('10', Quantity::format('10.0000'));
         $this->assertSame('10.25', Quantity::format('10.2500'));
         $this->assertSame('1,234.5', Quantity::format('1234.5000'));
+    }
+
+    public function test_admin_can_upload_and_view_a_product_image(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->admin)->put(route('products.update', $this->part), [
+            'code' => $this->part->code,
+            'name' => $this->part->name,
+            'product_type' => ProductType::PART->value,
+            'unit_id' => $this->unit->id,
+            'minimum_stock' => '5',
+            'is_active' => '1',
+            'image' => UploadedFile::fake()->image('part.jpg', 300, 300),
+        ])->assertRedirect(route('products.index'));
+
+        $product = $this->part->fresh();
+        Storage::disk('public')->assertExists($product->image_path);
+        $this->get(route('products.image', $product))->assertOk();
+        $this->get(route('products.index'))->assertOk()->assertSee(route('products.image', $product), false);
     }
 
     public function test_products_can_be_created_without_barcodes(): void

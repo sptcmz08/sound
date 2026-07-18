@@ -57,11 +57,11 @@
         @endif
 
         @if($requisition->targetProduct)
-        <section class="rounded-2xl border border-violet-200 bg-violet-50 p-6">
+        <section class="flex items-center gap-5 rounded-2xl border border-violet-200 bg-violet-50 p-6"><x-product-image :product="$requisition->targetProduct" size="lg" /><div>
             <span class="font-semibold text-violet-700">รายการที่ผลิตเข้าสต็อก</span>
             <h3 class="mt-1 text-2xl font-bold text-slate-950">{{ $requisition->targetProduct->code }} — {{ $requisition->targetProduct->name }}</h3>
             <p class="mt-2 text-lg">จำนวน <strong>{{ \App\Support\Quantity::format($requisition->target_quantity) }} {{ $requisition->targetProduct->unit->name }}</strong></p>
-        </section>
+        </div></section>
         @endif
 
         <section class="table-shell">
@@ -73,7 +73,7 @@
                     <thead><tr><th>ลำดับ</th><th>รหัส</th><th>รายการ</th><th class="text-right">จำนวน</th><th>หมายเหตุ</th></tr></thead>
                     <tbody>
                         @foreach($requisition->items as $index => $item)
-                        <tr><td>{{ $index + 1 }}</td><td class="font-bold">{{ $item->product->code }}</td><td>{{ $item->product->name }}</td><td class="text-right text-lg font-bold">{{ \App\Support\Quantity::format($item->quantity) }} {{ $item->product->unit->name }}</td><td>{{ $item->note ?: '—' }}</td></tr>
+                        <tr><td>{{ $index + 1 }}</td><td class="font-bold">{{ $item->product->code }}</td><td><div class="flex items-center gap-3"><x-product-image :product="$item->product" size="sm" /><span>{{ $item->product->name }}</span></div></td><td class="text-right text-lg font-bold">{{ \App\Support\Quantity::format($item->quantity) }} {{ $item->product->unit->name }}</td><td>{{ $item->note ?: '—' }}</td></tr>
                         @endforeach
                     </tbody>
                 </table>

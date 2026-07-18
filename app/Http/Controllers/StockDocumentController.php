@@ -39,6 +39,7 @@ class StockDocumentController extends Controller
             'code' => $product->code,
             'barcode' => $product->barcode,
             'name' => $product->name,
+            'image' => $product->image_path ? route('products.image', $product) : null,
             'unit' => $product->unit->name,
             'balances' => $product->balances->mapWithKeys(fn ($balance) => [
                 $balance->warehouse_id => Quantity::format($balance->quantity),

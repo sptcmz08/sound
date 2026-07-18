@@ -15,6 +15,15 @@ use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
+    public function image(Product $product)
+    {
+        abort_unless($product->image_path && Storage::disk('public')->exists($product->image_path), 404);
+
+        return Storage::disk('public')->response($product->image_path, null, [
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
+    }
+
     public function index(Request $request)
     {
         $products = Product::with('unit')->withCount('components')->withSum('balances', 'quantity')

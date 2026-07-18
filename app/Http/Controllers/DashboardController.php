@@ -17,7 +17,7 @@ class DashboardController extends Controller
             'fgCount' => Product::where('product_type', 'FG')->where('is_active', true)->count(),
             'pendingCount' => Requisition::where('status', RequisitionStatus::PENDING)->count(),
             'stockLines' => StockBalance::where('quantity', '>', 0)->count(),
-            'recentRequests' => Requisition::with(['requester', 'targetProduct'])->latest()->limit(8)->get(),
+            'recentRequests' => Requisition::with(['requester', 'targetProduct', 'items.product'])->latest()->limit(8)->get(),
         ]);
     }
 }

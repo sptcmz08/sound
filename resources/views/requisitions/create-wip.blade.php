@@ -9,6 +9,7 @@
         'id' => $part->id,
         'code' => $part->code,
         'name' => $part->name,
+        'image' => $part->image_path ? route('products.image', $part) : null,
         'unit' => $part->unit->name,
         'balance' => \App\Support\Quantity::format($part->balances_sum_quantity ?? 0),
         'balances' => $part->balances->mapWithKeys(fn ($balance) => [
@@ -19,6 +20,7 @@
         'id' => $wip->id,
         'code' => $wip->code,
         'name' => $wip->name,
+        'image' => $wip->image_path ? route('products.image', $wip) : null,
         'components' => $wip->components->map(fn ($component) => [
             'product_id' => $component->id,
             'quantity' => \App\Support\Quantity::format($component->pivot->quantity),
@@ -43,7 +45,7 @@
         </a>
     </div>
 
-    <form method="post" action="{{ route('requisitions.wip.store') }}" class="space-y-6" id="wip-form">
+    <form method="post" action="{{ route('requisitions.wip.store') }}" enctype="multipart/form-data" class="space-y-6" id="wip-form">
         @csrf
 
         <section class="panel overflow-hidden">
@@ -60,6 +62,7 @@
                         @endforeach
                     </select>
                     <small class="mt-2 block text-slate-500">เมื่อเลือกวิชเดิม ระบบจะเติมชื่อและรายการอะไหล่ให้อัตโนมัติ</small>
+                    <div id="saved-wip-picture" class="mt-3 hidden items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-slate-200"><img class="size-16 rounded-xl object-cover" alt="รูปวิชที่เลือก"><strong class="text-slate-900">รูปวิชที่เลือก</strong></div>
                 </label>
             </div>
             <div class="grid lg:grid-cols-[1fr_280px]">
@@ -76,6 +79,7 @@
                     </div>
                 </label>
             </div>
+            <div class="border-t border-slate-100 p-5 sm:p-6"><label class="block"><span class="label">รูปวิช</span><input class="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-violet-600 file:px-4 file:py-2.5 file:font-semibold file:text-white" type="file" name="wip_image" accept="image/jpeg,image/png,image/webp"><small class="mt-2 block text-slate-500">รูปที่เลือกจะบันทึกติดกับวิช และแสดงทุกหน้าของระบบ</small></label></div>
         </section>
 
         <section class="panel">
@@ -136,6 +140,11 @@ function selectedPart(productId) {
     return parts.find(part => String(part.id) === String(productId));
 }
 
+function partPicture(productId) {
+    const part = selectedPart(productId);
+    return part?.image ? `<img src="${part.image}" class="size-12 shrink-0 rounded-xl border border-slate-200 bg-white object-cover" alt="รูปอะไหล่">` : `<span class="grid size-12 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-slate-400">▧</span>`;
+}
+
 function balanceFor(productId) {
     const part = selectedPart(productId);
     if (!part) return '<span class="text-slate-400">—</span>';
@@ -146,7 +155,7 @@ function balanceFor(productId) {
 function render() {
     list.innerHTML = rows.map((row, index) => `
         <div class="grid items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 md:grid-cols-[minmax(0,1fr)_150px_190px_64px]">
-            <label><span class="label md:hidden">สินค้า</span><select class="select bg-white" name="components[${index}][product_id]" onchange="updateProduct(${index}, this.value)" required>${options(row.product_id)}</select></label>
+            <label><span class="label md:hidden">สินค้า</span><div class="flex items-center gap-3">${partPicture(row.product_id)}<select class="select bg-white" name="components[${index}][product_id]" onchange="updateProduct(${index}, this.value)" required>${options(row.product_id)}</select></div></label>
             <div><span class="label md:hidden">สต็อกคงเหลือ</span><div class="rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">${balanceFor(row.product_id)}</div></div>
             <label><span class="label md:hidden">จำนวนที่ใช้ต่อวิช</span><input class="input bg-white text-lg font-bold" name="components[${index}][quantity]" oninput="updateQuantity(${index}, this.value)" type="number" min="0.0001" step="0.0001" value="${escapeHtml(row.quantity || 1)}" required></label>
             <button type="button" class="grid min-h-12 place-items-center rounded-xl text-rose-600 hover:bg-rose-50" onclick="removeRow(${index})" title="ลบรายการ" aria-label="ลบรายการ">
@@ -168,12 +177,14 @@ function updateQuantity(index, quantity) {
 function applySavedWip(resetRows = true) {
     const savedWip = savedWips.find(wip => String(wip.id) === existingWip.value);
     if (savedWip) {
+        const picture=document.getElementById('saved-wip-picture'); picture.classList.toggle('hidden',!savedWip.image); picture.classList.toggle('flex',!!savedWip.image); if(savedWip.image)picture.querySelector('img').src=savedWip.image;
         wipName.value = savedWip.name;
         wipName.readOnly = true;
         wipName.classList.add('bg-slate-100');
         wipNameHelp.textContent = 'กำลังใช้สูตรที่บันทึกไว้ หากแก้รายการอะไหล่ สูตรนี้จะอัปเดตสำหรับครั้งถัดไป';
         if (resetRows) rows = savedWip.components.map(component => ({ ...component }));
     } else {
+        document.getElementById('saved-wip-picture').classList.add('hidden'); document.getElementById('saved-wip-picture').classList.remove('flex');
         wipName.readOnly = false;
         wipName.classList.remove('bg-slate-100');
         wipNameHelp.textContent = 'วิชใหม่จะถูกบันทึกไว้ให้เลือกใช้ในครั้งถัดไป';

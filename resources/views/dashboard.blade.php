@@ -101,7 +101,8 @@
                     <tbody>
                         @forelse($recentRequests as $request)
                         <tr>
-                            <td><a href="{{ route('requisitions.show', $request) }}" class="font-bold text-blue-700 hover:underline">{{ $request->request_no }}</a></td>
+                            @php($displayProduct = $request->targetProduct ?? $request->items->first()?->product)
+                            <td><div class="flex items-center gap-3"><x-product-image :product="$displayProduct" size="sm" /><a href="{{ route('requisitions.show', $request) }}" class="font-bold text-blue-700 hover:underline">{{ $request->request_no }}</a></div></td>
                             <td>{{ $request->request_type->label() }}</td>
                             <td>{{ $request->requester->name }}</td>
                             <td><span class="{{ $request->status->badgeClass() }}">{{ $request->status->label() }}</span></td>

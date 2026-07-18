@@ -21,6 +21,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('/products/{product}/image', [ProductController::class, 'image'])->name('products.image');
     Route::get('/requisitions', [RequisitionController::class, 'index'])->name('requisitions.index');
     Route::middleware('role:ADMIN,STOCK_STAFF')->group(function () {
         Route::get('/withdraw', [RequisitionController::class, 'withdraw'])->name('requisitions.withdraw');
