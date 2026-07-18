@@ -1,10 +1,10 @@
 # MySQL database
 
-ไฟล์ `simple_stock_mysql.sql` มีโครงสร้างตารางและข้อมูลธุรกิจจากฐานข้อมูล local พร้อมนำเข้า MySQL/MariaDB ได้ทันที
+ไฟล์ `sound_db.sql` มีโครงสร้างตารางและข้อมูลธุรกิจจากฐานข้อมูล local พร้อมนำเข้าฐานข้อมูล `sound_db` บน MySQL/MariaDB ได้ทันที
 
 ```bash
-mysql -u root -p -e "CREATE DATABASE simple_stock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p simple_stock < database/simple_stock_mysql.sql
+mysql -u root -p -e "CREATE DATABASE sound_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p sound_db < database/sound_db.sql
 ```
 
 ตั้งค่า `.env` สำหรับใช้งาน MySQL:
@@ -13,7 +13,7 @@ mysql -u root -p simple_stock < database/simple_stock_mysql.sql
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=simple_stock
+DB_DATABASE=sound_db
 DB_USERNAME=root
 DB_PASSWORD=
 ```
