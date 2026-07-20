@@ -105,6 +105,26 @@ if (authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'
         } catch (Throwable $throwable) {
             $error = get_class($throwable).': '.$throwable->getMessage();
         }
+    } elseif (($_POST['action'] ?? '') === 'migrate') {
+        try {
+            chdir($root);
+            $autoload = $root.'/vendor/autoload.php';
+            if (! is_file($autoload)) {
+                throw new RuntimeException("ไม่พบ {$autoload} กรุณาวาง vendor ไว้ระดับเดียวกับ public");
+            }
+
+            require_once $autoload;
+            $app = require $root.'/bootstrap/app.php';
+            $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $exitCode = Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $output = '$ php artisan migrate --force'.PHP_EOL
+                .Illuminate\Support\Facades\Artisan::output()
+                .'Exit code: '.$exitCode;
+            $message = 'ดำเนินการคำสั่ง Migrate (php artisan migrate) แล้ว';
+        } catch (Throwable $throwable) {
+            $error = get_class($throwable).': '.$throwable->getMessage();
+        }
     } elseif (($_POST['action'] ?? '') === 'logout') {
         session_destroy();
         header('Location: '.$_SERVER['PHP_SELF']);
@@ -149,6 +169,7 @@ $log = authenticated() ? tailLog($root.'/storage/logs/laravel.log') : '';
             <p class="muted">ปุ่มด้านล่างรันตามลำดับ: optimize:clear → config:cache → route:cache → view:cache</p>
             <div class="buttons">
                 <form method="post"><input type="hidden" name="_token" value="<?= htmlspecialchars(csrfToken()) ?>"><input type="hidden" name="action" value="run"><button class="primary">รันคำสั่ง Deploy</button></form>
+                <form method="post"><input type="hidden" name="_token" value="<?= htmlspecialchars(csrfToken()) ?>"><input type="hidden" name="action" value="migrate"><button class="primary" style="background:#059669">รัน Migrate</button></form>
                 <form method="post"><input type="hidden" name="_token" value="<?= htmlspecialchars(csrfToken()) ?>"><input type="hidden" name="action" value="logout"><button class="secondary">ออกจากระบบ</button></form>
                 <form method="post" onsubmit="return confirm('ยืนยันลบ Deploy Tool ออกจากเซิร์ฟเวอร์?')"><input type="hidden" name="_token" value="<?= htmlspecialchars(csrfToken()) ?>"><input type="hidden" name="action" value="delete"><button class="delete">ลบเครื่องมือนี้</button></form>
             </div>
