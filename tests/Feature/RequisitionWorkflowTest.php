@@ -44,7 +44,7 @@ class RequisitionWorkflowTest extends TestCase
         $this->warehouse = Warehouse::create(['code' => 'MAIN', 'name' => 'คลังหลัก', 'is_active' => true]);
         $base = ['unit_id' => $this->unit->id, 'minimum_stock' => 0, 'is_active' => true, 'created_by' => $this->admin->id, 'updated_by' => $this->admin->id];
         $this->part = Product::create($base + ['code' => 'NUT-14', 'name' => 'น็อต 1/4 นิ้ว', 'product_type' => ProductType::PART]);
-        $this->wip = Product::create($base + ['code' => 'WIP-01', 'name' => 'วิชลำโพง A', 'product_type' => ProductType::WIP]);
+        $this->wip = Product::create($base + ['code' => 'WIP-01', 'name' => 'WIP ลำโพง A', 'product_type' => ProductType::WIP]);
         $this->wip->components()->attach($this->part->id, ['quantity' => 4]);
     }
 
@@ -70,15 +70,15 @@ class RequisitionWorkflowTest extends TestCase
             ->get(route('requisitions.withdraw'))
             ->assertOk()
             ->assertSee('เบิกสินค้า')
-            ->assertSee('อะไหล่ทั่วไป')
-            ->assertSee('วิช')
+            ->assertSee('PART')
+            ->assertSee('WIP')
             ->assertSee('FG พร้อมขาย');
 
         $this->actingAs($this->staff)
             ->get(route('requisitions.production'))
             ->assertOk()
-            ->assertSee('สร้างวิช')
-            ->assertSee('สร้าง FG');
+            ->assertSee('ผลิต WIP')
+            ->assertSee('ผลิต FG');
 
         $this->actingAs($this->staff)
             ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_WIP->value]))
@@ -112,19 +112,19 @@ class RequisitionWorkflowTest extends TestCase
         $this->actingAs($this->staff)
             ->get(route('requisitions.wip.create'))
             ->assertOk()
-            ->assertSee('ชื่อวิช')
+            ->assertSee('ชื่อ WIP')
             ->assertSee($this->part->code)
             ->assertDontSee('แผนก / หน่วยงาน')
             ->assertDontSee('วัตถุประสงค์');
 
         $this->actingAs($this->staff)->post(route('requisitions.wip.store'), [
-            'wip_name' => 'วิชทดสอบรุ่นใหม่',
+            'wip_name' => 'WIP ทดสอบรุ่นใหม่',
             'output_quantity' => 3,
             'warehouse_id' => $this->warehouse->id,
             'components' => [['product_id' => $this->part->id, 'quantity' => 2]],
         ])->assertRedirect();
 
-        $newWip = Product::where('name', 'วิชทดสอบรุ่นใหม่')->firstOrFail();
+        $newWip = Product::where('name', 'WIP ทดสอบรุ่นใหม่')->firstOrFail();
         $this->assertSame(ProductType::WIP, $newWip->product_type);
         $this->assertStringStartsWith('WIP-', $newWip->code);
         $this->assertEquals(2, $newWip->components()->first()->pivot->quantity);
@@ -136,7 +136,7 @@ class RequisitionWorkflowTest extends TestCase
         $this->actingAs($this->staff)
             ->get(route('requisitions.wip.create'))
             ->assertOk()
-            ->assertSee('เลือกวิชที่เคยสร้าง')
+            ->assertSee('เลือก WIP ที่เคยสร้าง')
             ->assertSee($this->wip->name)
             ->assertSee('"product_id":'.$this->part->id, false);
 
@@ -165,13 +165,13 @@ class RequisitionWorkflowTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)->post(route('requisitions.wip.store'), [
-            'wip_name' => 'วิชแอดมินสร้าง',
+            'wip_name' => 'WIP แอดมินสร้าง',
             'output_quantity' => 2,
             'warehouse_id' => $this->warehouse->id,
             'components' => [['product_id' => $this->part->id, 'quantity' => 2]],
         ])->assertRedirect();
 
-        $product = Product::where('name', 'วิชแอดมินสร้าง')->firstOrFail();
+        $product = Product::where('name', 'WIP แอดมินสร้าง')->firstOrFail();
         $requisition = Requisition::where('target_product_id', $product->id)->firstOrFail();
         $this->assertSame(RequisitionStatus::APPROVED, $requisition->status);
         $this->assertSame($this->admin->id, $requisition->approved_by);

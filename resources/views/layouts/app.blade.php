@@ -36,67 +36,7 @@
     </div>
 
     <nav class="scrollbar-thin flex-1 overflow-y-auto px-3 py-4">
-        <details open class="sidebar-group mb-2">
-            <summary class="sidebar-group-title flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500">ภาพรวม <span>⌄</span></summary>
-            <div class="space-y-1">
-                <a href="{{route('dashboard')}}" title="แดชบอร์ด" class="sidebar-link {{$nav(request()->routeIs('dashboard'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM3 21h8v-6H3v6Zm10-12h8V3h-8v6Z"/></svg><span class="sidebar-label">แดชบอร์ด</span>
-                </a>
-            </div>
-        </details>
-
-        @if(auth()->user()->canOperateStock())
-        <details open class="sidebar-group mb-2">
-            <summary class="sidebar-group-title flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500">งานสต็อก <span>⌄</span></summary>
-            <div class="space-y-1">
-                <a href="{{route('requisitions.withdraw')}}" title="เบิกออกสต็อก" class="sidebar-link {{$nav(request()->routeIs('requisitions.withdraw') || (request()->routeIs('requisitions.create') && in_array(request('type'),['GENERAL_ISSUE','ISSUE_WIP','ISSUE_FG'])))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 21V9m0 0 4 4m-4-4-4 4M5 4h14"/></svg><span class="sidebar-label">เบิกออกสต็อก</span>
-                </a>
-                <a href="{{route('requisitions.production')}}" title="สร้างวิช / FG" class="sidebar-link {{$nav(request()->routeIs('requisitions.production','requisitions.wip.*') || (request()->routeIs('requisitions.create') && in_array(request('type'),['BUILD_WIP','BUILD_FG'])))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 21V10l5 3V9l5 3V4h4v17M3 21h18"/></svg><span class="sidebar-label">สร้างวิช / FG</span>
-                </a>
-                @if(auth()->user()->isAdmin())
-                <a href="{{route('requisitions.issues')}}" title="จ่ายสินค้า" class="sidebar-link {{$nav(request()->routeIs('requisitions.issues','requisitions.approvals'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 12h16m0 0-4-4m4 4-4 4M5 5v14"/></svg><span class="sidebar-label flex-1">จ่ายสินค้า</span>@if($pendingRequests)<span class="sidebar-label rounded-full bg-rose-500 px-2 py-0.5 text-xs font-bold text-white">{{$pendingRequests}}</span>@endif
-                </a>
-                @endif
-            </div>
-        </details>
-        @endif
-
-        <details open class="sidebar-group mb-2">
-            <summary class="sidebar-group-title flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500">ข้อมูลหลัก <span>⌄</span></summary>
-            <div class="space-y-1">
-                <a href="{{route('products.index')}}" title="สินค้าและรับเข้าสต็อก" class="sidebar-link {{$nav(request()->routeIs('products.*','stock.receive*'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 8-9-5-9 5 9 5 9-5Zm-18 4 9 5 9-5M3 16l9 5 9-5"/></svg><span class="sidebar-label">สินค้า / รับเข้า</span>
-                </a>
-                <a href="{{route('reports.balances')}}" title="ยอดคงเหลือ" class="sidebar-link {{$nav(request()->routeIs('reports.balances'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h10"/></svg><span class="sidebar-label">ยอดคงเหลือ</span>
-                </a>
-                <a href="{{route('requisitions.index')}}" title="ประวัติคำขอ" class="sidebar-link {{$nav(request()->routeIs('requisitions.index','requisitions.show'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 3h12v18H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 5h6M8 12h8M8 16h5"/></svg><span class="sidebar-label">{{auth()->user()->isAdmin()?'คำขอทั้งหมด':'คำขอของฉัน'}}</span>
-                </a>
-                @if(!auth()->user()->isAdmin())
-                <a href="{{route('signature.edit')}}" title="ลายเซ็นออนไลน์" class="sidebar-link {{$nav(request()->routeIs('signature.*'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 20c4-1 7-3 10-7l5-7-3-2-5 7c-3 4-4 7-3 8m-4 1h16"/></svg><span class="sidebar-label">ลายเซ็นออนไลน์</span>
-                </a>
-                @endif
-            </div>
-        </details>
-
-        @if(auth()->user()->isAdmin())
-        <details class="sidebar-group mb-2">
-            <summary class="sidebar-group-title flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500">ตั้งค่า <span>⌄</span></summary>
-            <div class="space-y-1">
-                <a href="{{route('users.index')}}" title="ผู้ใช้งาน" class="sidebar-link {{$nav(request()->routeIs('users.*'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87"/></svg><span class="sidebar-label">ผู้ใช้งาน</span>
-                </a>
-                <a href="{{route('settings')}}" title="ตั้งค่าระบบ" class="sidebar-link {{$nav(request()->routeIs('settings*'))}}">
-                    <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.4-3.5a7.4 7.4 0 0 0-.08-1l2-1.55-2-3.46-2.35.95a7.6 7.6 0 0 0-1.72-1L14.9 3.5h-4l-.36 2.44a7.6 7.6 0 0 0-1.72 1l-2.35-.95-2 3.46 2 1.55a7.4 7.4 0 0 0 0 2l-2 1.55 2 3.46 2.35-.95a7.6 7.6 0 0 0 1.72 1l.36 2.44h4l.36-2.44a7.6 7.6 0 0 0 1.72-1l2.35.95 2-3.46-2-1.55c.05-.33.08-.66.08-1Z"/></svg><span class="sidebar-label">ตั้งค่าระบบ</span>
-                </a>
-            </div>
-        </details>
-        @endif
+        @include('layouts.navigation')
     </nav>
 
     <div class="shrink-0 border-t border-white/10 p-3">

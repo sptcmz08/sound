@@ -92,7 +92,7 @@
         <div class="result"><strong>ผลลัพธ์ที่เพิ่มเข้าสต็อก:</strong> {{ $requisition->targetProduct->code }} — {{ $requisition->targetProduct->name }} จำนวน <strong>{{ \App\Support\Quantity::format($requisition->target_quantity) }} {{ $requisition->targetProduct->unit->name }}</strong></div>
         @endif
 
-        <h2 class="section-title">รายการ{{ $requisition->request_type->isBuild() ? 'อะไหล่ที่ใช้ผลิต' : 'พัสดุที่ขอเบิก' }}</h2>
+        <h2 class="section-title">รายการ{{ $requisition->request_type->isBuild() ? 'ส่วนประกอบที่ใช้ผลิต' : 'พัสดุที่ขอเบิก' }}</h2>
         <table class="items-table">
             <thead><tr><th style="width:8%">ลำดับ</th><th style="width:18%">รหัส</th><th>รายการ</th><th style="width:14%">จำนวน</th><th style="width:13%">หน่วย</th><th style="width:18%">หมายเหตุ</th></tr></thead>
             <tbody>

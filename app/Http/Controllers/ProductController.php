@@ -26,16 +26,17 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
+        $selectedType = $request->input('type', ProductType::PART->value);
         $products = Product::with('unit')->withCount('components')->withSum('balances', 'quantity')
             ->when($request->q, fn ($query, $value) => $query->where(
                 fn ($inner) => $inner->where('code', 'like', "%{$value}%")->orWhere('name', 'like', "%{$value}%")
             ))
-            ->when($request->type, fn ($query, $value) => $query->where('product_type', $value))
+            ->where('product_type', $selectedType)
             ->latest()->paginate(20)->withQueryString();
 
         return view('products.index', [
             'products' => $products,
-            'receiptProducts' => Product::with('unit')->where('is_active', true)->orderBy('code')->get(),
+            'receiptProducts' => Product::with('unit')->where('is_active', true)->where('product_type', ProductType::PART)->orderBy('code')->get(),
             'warehouses' => Warehouse::where('is_active', true)->orderBy('code')->get(),
         ]);
     }
@@ -54,8 +55,11 @@ class ProductController extends Controller
     {
         $product = DB::transaction(function () use ($request, $audit) {
             $data = $request->safe()->except(['image', 'components']);
+            $data['standard_cost'] = $data['standard_cost'] ?? 0;
+            $data['sale_price'] = $data['sale_price'] ?? 0;
             $data['created_by'] = $data['updated_by'] = $request->user()->id;
             $data['is_active'] = $request->boolean('is_active');
+            $data['is_consumable'] = $request->boolean('is_consumable');
             if ($request->hasFile('image')) {
                 $data['image_path'] = $request->file('image')->store('products', 'public');
             }
@@ -85,6 +89,7 @@ class ProductController extends Controller
             $data = $request->safe()->except(['image', 'components']);
             $data['updated_by'] = $request->user()->id;
             $data['is_active'] = $request->boolean('is_active');
+            $data['is_consumable'] = $request->boolean('is_consumable');
             if ($request->hasFile('image')) {
                 if ($product->image_path) {
                     Storage::disk('public')->delete($product->image_path);
@@ -131,7 +136,7 @@ class ProductController extends Controller
     {
         $type = ProductType::from($typeValue);
         if ($type === ProductType::PART && count($components)) {
-            throw ValidationException::withMessages(['components' => 'อะไหล่ทั่วไปไม่ต้องมีสูตรส่วนประกอบ']);
+            throw ValidationException::withMessages(['components' => 'PART ไม่ต้องมีสูตรส่วนประกอบ']);
         }
         if (in_array($type, [ProductType::WIP, ProductType::FG], true) && ! count($components)) {
             throw ValidationException::withMessages(['components' => 'กรุณาเพิ่มส่วนประกอบอย่างน้อย 1 รายการ']);
@@ -144,7 +149,7 @@ class ProductController extends Controller
                 ? $item?->product_type === ProductType::PART
                 : in_array($item?->product_type, [ProductType::PART, ProductType::WIP], true);
             if (! $item || ! $item->is_active || ! $allowed || $item->id === $productId) {
-                throw ValidationException::withMessages(['components' => 'ส่วนประกอบไม่ถูกต้อง: วิชใช้ได้เฉพาะอะไหล่ ส่วน FG ใช้อะไหล่หรือวิช']);
+                throw ValidationException::withMessages(['components' => 'ส่วนประกอบไม่ถูกต้อง: WIP ใช้ได้เฉพาะ PART ส่วน FG ใช้ PART หรือ WIP']);
             }
         }
     }

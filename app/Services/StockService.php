@@ -47,8 +47,18 @@ class StockService
                         throw ValidationException::withMessages(['items' => 'ประเภทสินค้าไม่ตรงกับประเภทเอกสาร']);
                     }if (BigDecimal::of($line['quantity'])->isLessThanOrEqualTo(0)) {
                         throw ValidationException::withMessages(['items' => 'จำนวนต้องมากกว่า 0']);
-                    }$item = $doc->items()->create(['product_id' => $product->id, 'quantity' => (string) $line['quantity'], 'unit_id' => $product->unit_id, 'note' => $line['note'] ?? null]);
+                    }$item = $doc->items()->create([
+                        'product_id' => $product->id,
+                        'quantity' => (string) $line['quantity'],
+                        'unit_cost' => (string) ($line['unit_cost'] ?? $product->standard_cost ?? 0),
+                        'unit_price' => (string) ($line['unit_price'] ?? 0),
+                        'unit_id' => $product->unit_id,
+                        'note' => $line['note'] ?? null,
+                    ]);
                     $this->apply($doc, $item->id, $product, $type->isInbound(), (string) $line['quantity'], $user, $this->transactionType($type));
+                    if ($type === StockDocumentType::SUPPLIER_IN && array_key_exists('unit_cost', $line)) {
+                        $product->update(['standard_cost' => (string) $line['unit_cost'], 'updated_by' => $user->id]);
+                    }
                 }
                 $doc->update(['status' => StockDocumentStatus::POSTED, 'posted_by' => $user->id, 'posted_at' => now()]);
                 $this->audit->record($user, 'POST', 'stock_document', $doc->id, null, ['document_no' => $doc->document_no, 'type' => $type->value]);
@@ -98,7 +108,11 @@ class StockService
     private function transactionType(StockDocumentType $type): StockTransactionType
     {
         return match ($type) {
-            StockDocumentType::PART_IN,StockDocumentType::WIP_IN,StockDocumentType::FG_IN => StockTransactionType::IN,StockDocumentType::PART_OUT,StockDocumentType::WIP_OUT,StockDocumentType::FG_OUT => StockTransactionType::OUT,StockDocumentType::ADJUST_IN => StockTransactionType::ADJUST_IN,StockDocumentType::ADJUST_OUT => StockTransactionType::ADJUST_OUT,default => throw new \LogicException('Unsupported document type')
+            StockDocumentType::PART_IN,StockDocumentType::WIP_IN,StockDocumentType::FG_IN,StockDocumentType::SUPPLIER_IN,StockDocumentType::CLAIM_IN => StockTransactionType::IN,
+            StockDocumentType::PART_OUT,StockDocumentType::WIP_OUT,StockDocumentType::FG_OUT,StockDocumentType::SALE_OUT,StockDocumentType::WASTE_OUT => StockTransactionType::OUT,
+            StockDocumentType::ADJUST_IN => StockTransactionType::ADJUST_IN,
+            StockDocumentType::ADJUST_OUT => StockTransactionType::ADJUST_OUT,
+            default => throw new \LogicException('Unsupported document type')
         };
     }
 }

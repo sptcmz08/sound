@@ -66,7 +66,7 @@
 
         <section class="table-shell">
             <div class="panel-header">
-                <div><h3 class="text-xl font-bold text-slate-950">{{ $requisition->request_type->isBuild() ? 'รายการอะไหล่ที่ใช้ผลิต' : 'รายการที่ขอเบิก' }}</h3><p class="mt-0.5 text-sm text-slate-500">รายการนี้จะแสดงในใบเบิกพัสดุ</p></div>
+                <div><h3 class="text-xl font-bold text-slate-950">{{ $requisition->request_type->isBuild() ? 'รายการส่วนประกอบที่ใช้ผลิต' : 'รายการที่ขอเบิก' }}</h3><p class="mt-0.5 text-sm text-slate-500">รายการนี้จะแสดงในใบเบิกพัสดุ</p></div>
             </div>
             <div class="table-wrap">
                 <table class="data-table">

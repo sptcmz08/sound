@@ -11,7 +11,7 @@ enum ProductType: string
     public function label(): string
     {
         return match ($this) {
-            self::PART => 'อะไหล่ทั่วไป', self::WIP => 'วิช', self::FG => 'สินค้าสำเร็จรูป (FG)'
+            self::PART => 'PART', self::WIP => 'WIP', self::FG => 'FG'
         };
     }
 }

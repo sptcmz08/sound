@@ -35,7 +35,7 @@
                     <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21V9m0 0 4 4m-4-4-4 4M5 4h14"/></svg>
                 </span>
                 <strong class="block text-xl">เบิกออกสต็อก</strong>
-                <span class="mt-1 block text-sm text-amber-50">เลือกเบิกอะไหล่ วิช หรือ FG</span>
+                <span class="mt-1 block text-sm text-amber-50">เลือกเบิก PART, WIP หรือ FG</span>
                 <span class="absolute right-5 top-1/2 text-2xl transition group-hover:translate-x-1">→</span>
             </a>
 
@@ -43,7 +43,7 @@
                 <span class="mb-5 grid size-11 place-items-center rounded-xl bg-white/20">
                     <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 21V10l5 3V9l5 3V4h4v17M3 21h18"/></svg>
                 </span>
-                <strong class="block text-xl">สร้างวิช / FG</strong>
+                <strong class="block text-xl">ผลิต WIP / FG</strong>
                 <span class="mt-1 block text-sm text-violet-50">เลือกวัตถุดิบและสร้างงานผลิต</span>
                 <span class="absolute right-5 top-1/2 text-2xl transition group-hover:translate-x-1">→</span>
             </a>
@@ -68,12 +68,12 @@
 
     <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <div class="stat-card">
-            <div class="flex items-start justify-between gap-3"><span class="grid size-11 place-items-center rounded-xl bg-blue-50 text-blue-600"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h10"/></svg></span><span class="badge-blue">อะไหล่</span></div>
-            <strong class="mt-5 block text-3xl font-bold text-slate-950">{{ number_format($partCount) }}</strong><span class="text-sm font-medium text-slate-500">รายการอะไหล่ทั่วไป</span>
+            <div class="flex items-start justify-between gap-3"><span class="grid size-11 place-items-center rounded-xl bg-blue-50 text-blue-600"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h10"/></svg></span><span class="badge-blue">PART</span></div>
+            <strong class="mt-5 block text-3xl font-bold text-slate-950">{{ number_format($partCount) }}</strong><span class="text-sm font-medium text-slate-500">รายการ PART ในระบบ</span>
         </div>
         <div class="stat-card">
-            <div class="flex items-start justify-between gap-3"><span class="grid size-11 place-items-center rounded-xl bg-violet-50 text-violet-600"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/></svg></span><span class="rounded-full bg-violet-50 px-3 py-1.5 text-sm font-bold text-violet-700 ring-1 ring-inset ring-violet-200">วิช</span></div>
-            <strong class="mt-5 block text-3xl font-bold text-slate-950">{{ number_format($wipCount) }}</strong><span class="text-sm font-medium text-slate-500">รายการวิชในระบบ</span>
+            <div class="flex items-start justify-between gap-3"><span class="grid size-11 place-items-center rounded-xl bg-violet-50 text-violet-600"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/></svg></span><span class="rounded-full bg-violet-50 px-3 py-1.5 text-sm font-bold text-violet-700 ring-1 ring-inset ring-violet-200">WIP</span></div>
+            <strong class="mt-5 block text-3xl font-bold text-slate-950">{{ number_format($wipCount) }}</strong><span class="text-sm font-medium text-slate-500">รายการ WIP ในระบบ</span>
         </div>
         <div class="stat-card">
             <div class="flex items-start justify-between gap-3"><span class="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14v11H5zM8 8V5h8v3"/></svg></span><span class="badge-green">FG</span></div>
@@ -120,7 +120,7 @@
             <div class="panel-body space-y-5">
                 @foreach([
                     ['1', 'รับสินค้าเข้า', 'แอดมินคีย์สินค้าและจำนวนเข้าคลัง', 'bg-emerald-500'],
-                    ['2', 'เบิกหรือสร้าง', 'เลือกอะไหล่ วิช หรือ FG ที่ต้องการ', 'bg-violet-500'],
+                    ['2', 'เบิกหรือผลิต', 'เลือก PART, WIP หรือ FG ที่ต้องการ', 'bg-violet-500'],
                     ['3', 'ตรวจและอนุมัติ', 'แอดมินตรวจยอดก่อนหักสต็อก', 'bg-blue-500'],
                     ['4', 'พิมพ์ใบเบิกและลงนาม', 'ผู้ขอและผู้อนุมัติลงชื่อบนเอกสาร', 'bg-amber-500'],
                 ] as [$number, $title, $description, $color])

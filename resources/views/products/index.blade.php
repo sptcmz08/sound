@@ -5,14 +5,14 @@
     <div>
         <span class="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700 ring-1 ring-blue-200">คลังสินค้า</span>
         <h2 class="page-title">รายการสินค้า</h2>
-        <p class="page-subtitle">ดูยอดคงเหลือ รับสินค้าเข้า และจัดการอะไหล่ วิช หรือ FG จากหน้าเดียว</p>
+        <p class="page-subtitle">แยกจัดการข้อมูล PART, WIP และ FG พร้อมสูตรการผลิตอย่างชัดเจน</p>
     </div>
     @if(auth()->user()->isAdmin())
     <div class="flex flex-wrap gap-3">
-        <button type="button" class="btn-success" data-open-receive>
+        <a href="{{route('operations.create','supplier-receive')}}" class="btn-success">
             <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
-            รับสินค้าเข้า
-        </button>
+            รับเข้า (Supplier)
+        </a>
         <a href="{{route('products.create')}}" class="btn-primary">
             <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
             เพิ่มสินค้า / สูตร
@@ -21,12 +21,17 @@
     @endif
 </div>
 
+<div class="mb-5 grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-2">
+    @foreach(['PART'=>'PART','WIP'=>'WIP','FG'=>'FG'] as $value=>$label)
+    <a href="{{route('products.index',['type'=>$value])}}" class="rounded-xl px-4 py-3 text-center font-bold transition {{request('type','PART')===$value?'bg-white text-blue-700 shadow-sm':'text-slate-500 hover:text-slate-800'}}">{{$label}}</a>
+    @endforeach
+</div>
 <form class="panel mb-5 flex flex-wrap gap-3 p-4">
     <div class="relative min-w-64 flex-1">
         <svg class="pointer-events-none absolute left-4 top-3.5 size-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
         <input class="input pl-11" name="q" value="{{request('q')}}" placeholder="ค้นหารหัสหรือชื่อสินค้า">
     </div>
-    <select class="select w-full sm:w-56" name="type"><option value="">ทุกประเภท</option><option value="PART" @selected(request('type')==='PART')>อะไหล่ทั่วไป</option><option value="WIP" @selected(request('type')==='WIP')>วิช</option><option value="FG" @selected(request('type')==='FG')>FG</option></select>
+    <select class="select w-full sm:w-56" name="type"><option value="PART" @selected(request('type','PART')==='PART')>PART</option><option value="WIP" @selected(request('type')==='WIP')>WIP</option><option value="FG" @selected(request('type')==='FG')>FG</option></select>
     <button class="btn-secondary">ค้นหา</button>
 </form>
 
@@ -50,7 +55,7 @@
                     <td class="text-right">
                         @if(auth()->user()->isAdmin())
                         <div class="flex justify-end gap-2">
-                            @if($p->is_active)
+                            @if($p->is_active && $p->product_type === \App\Enums\ProductType::PART)
                             <button type="button" class="btn-success px-3 py-2 text-sm" data-open-receive data-product="{{$p->id}}" data-product-name="{{$p->code}} — {{$p->name}}" data-unit="{{$p->unit->name}}">+ รับเข้า</button>
                             @endif
                             <a class="btn-secondary px-3 py-2 text-sm" href="{{route('products.edit',$p)}}">แก้ไข</a>

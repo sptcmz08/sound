@@ -9,6 +9,7 @@ use App\Services\StockService;
 use App\Support\Quantity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class StockReceiptController extends Controller
 {
@@ -26,6 +27,9 @@ class StockReceiptController extends Controller
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
         $product = Product::with('unit')->findOrFail($data['product_id']);
+        if ($product->product_type !== ProductType::PART) {
+            throw ValidationException::withMessages(['product_id' => 'การรับเข้าจาก Supplier รองรับเฉพาะ PART; WIP และ FG ต้องเข้าสต็อกจากขั้นตอนผลิต']);
+        }
         $type = match ($product->product_type) {
             ProductType::PART => StockDocumentType::PART_IN,
             ProductType::WIP => StockDocumentType::WIP_IN,

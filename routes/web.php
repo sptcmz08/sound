@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BusinessOperationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\ProductController;
@@ -24,6 +25,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/products/{product}/image', [ProductController::class, 'image'])->name('products.image');
     Route::get('/requisitions', [RequisitionController::class, 'index'])->name('requisitions.index');
     Route::middleware('role:ADMIN,STOCK_STAFF')->group(function () {
+        Route::get('/operations/{operation}', [BusinessOperationController::class, 'create'])->whereIn('operation', ['supplier-receive', 'sale', 'claim', 'waste'])->name('operations.create');
+        Route::post('/operations/{operation}', [BusinessOperationController::class, 'store'])->whereIn('operation', ['supplier-receive', 'sale', 'claim', 'waste'])->name('operations.store');
         Route::get('/withdraw', [RequisitionController::class, 'withdraw'])->name('requisitions.withdraw');
         Route::get('/production', [RequisitionController::class, 'production'])->name('requisitions.production');
         Route::get('/production/wip/create', [RequisitionController::class, 'createWip'])->name('requisitions.wip.create');
@@ -74,4 +77,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/balances/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
     Route::get('/reports/stock-card', [ReportController::class, 'card'])->name('reports.card');
     Route::get('/reports/movements', [ReportController::class, 'movements'])->name('reports.movements');
+    Route::get('/reports/cost-profit', [ReportController::class, 'costProfit'])->name('reports.cost-profit');
+    Route::get('/reports/issue', [ReportController::class, 'issues'])->name('reports.issue');
+    Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
+    Route::get('/reports/claims', [ReportController::class, 'claims'])->name('reports.claims');
+    Route::get('/reports/waste', [ReportController::class, 'waste'])->name('reports.waste');
 });

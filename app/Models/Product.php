@@ -15,7 +15,7 @@ class Product extends Model
 
     protected function casts(): array
     {
-        return ['product_type' => ProductType::class, 'minimum_stock' => FlexibleDecimal::class, 'is_active' => 'boolean'];
+        return ['product_type' => ProductType::class, 'minimum_stock' => FlexibleDecimal::class, 'standard_cost' => FlexibleDecimal::class, 'sale_price' => FlexibleDecimal::class, 'is_consumable' => 'boolean', 'is_active' => 'boolean'];
     }
 
     public function unit()

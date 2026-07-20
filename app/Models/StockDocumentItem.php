@@ -11,7 +11,7 @@ class StockDocumentItem extends Model
 
     protected function casts(): array
     {
-        return ['quantity' => FlexibleDecimal::class];
+        return ['quantity' => FlexibleDecimal::class, 'unit_cost' => FlexibleDecimal::class, 'unit_price' => FlexibleDecimal::class];
     }
 
     public function product()

@@ -84,6 +84,10 @@ class RequisitionService
                 $documents[] = $this->stock->createAndPost($this->documentData($request, $items->map(fn ($item) => ['product_id' => $item->product_id, 'quantity' => $item->quantity])->all()), $this->outType(ProductType::from($productType)), $admin);
             }
             if ($request->request_type->isBuild()) {
+                $calculatedCost = $request->targetProduct->components->sum(
+                    fn ($component) => (float) $component->standard_cost * (float) $component->pivot->quantity
+                );
+                $request->targetProduct->update(['standard_cost' => $calculatedCost, 'updated_by' => $admin->id]);
                 $documents[] = $this->stock->createAndPost($this->documentData($request, [['product_id' => $request->target_product_id, 'quantity' => $request->target_quantity]]), $this->inType($request->targetProduct->product_type), $admin);
             }
             $request->stockDocuments()->sync(collect($documents)->pluck('id'));

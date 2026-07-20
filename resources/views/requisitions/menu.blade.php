@@ -13,11 +13,11 @@
         @foreach($types as $type)
         @php
             $card = match($type->value) {
-                'GENERAL_ISSUE' => ['อะไหล่ทั่วไป', 'เบิกน็อต สาย แผ่นเหล็ก หรืออะไหล่ทั่วไปออกไปใช้', 'ก', 'bg-blue-100 text-blue-700'],
-                'ISSUE_WIP' => ['วิช', 'เบิกวิชที่ผลิตเสร็จแล้วออกไปใช้งาน', 'ว', 'bg-amber-100 text-amber-700'],
+                'GENERAL_ISSUE' => ['PART', 'เบิกชิ้นส่วนหรือวัสดุสิ้นเปลืองออกจากสต็อก', 'P', 'bg-blue-100 text-blue-700'],
+                'ISSUE_WIP' => ['WIP', 'เบิก WIP ที่ผลิตเสร็จแล้วออกไปใช้งาน', 'W', 'bg-amber-100 text-amber-700'],
                 'ISSUE_FG' => ['FG พร้อมขาย', 'เบิกสินค้าสำเร็จรูปออกไปขายหรือส่งมอบ', 'FG', 'bg-emerald-100 text-emerald-700'],
-                'BUILD_WIP' => ['สร้างวิช', 'เลือกสูตรวิช ตัดอะไหล่ และเพิ่มวิชเข้าสต็อก', '+ว', 'bg-amber-100 text-amber-700'],
-                'BUILD_FG' => ['สร้าง FG', 'เลือกสูตร FG ตัดวิช/อะไหล่ และเพิ่ม FG เข้าสต็อก', '+FG', 'bg-emerald-100 text-emerald-700'],
+                'BUILD_WIP' => ['ผลิต WIP', 'เลือกสูตร WIP ตัด PART และเพิ่ม WIP เข้าสต็อก', '+W', 'bg-amber-100 text-amber-700'],
+                'BUILD_FG' => ['ผลิต FG', 'เลือกสูตร FG ตัด WIP / PART และเพิ่ม FG เข้าสต็อก', '+FG', 'bg-emerald-100 text-emerald-700'],
             };
         @endphp
         <a href="{{$type->value === 'BUILD_WIP' ? route('requisitions.wip.create') : route('requisitions.create',['type'=>$type->value])}}" class="panel group relative overflow-hidden p-6 hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg">

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Product;
+use App\Models\StockDocument;
+use App\Models\StockDocumentItem;
 use App\Models\StockTransaction;
 use App\Services\ProductSpreadsheetService;
 use App\Services\StockReportService;
@@ -60,5 +62,50 @@ class ReportController extends Controller
         abort_unless(request()->user()->isAdmin(), 403);
 
         return view('reports.audits', ['rows' => AuditLog::with('user')->latest()->paginate(50)]);
+    }
+
+    public function costProfit(Request $request)
+    {
+        $base = StockDocumentItem::query()
+            ->join('stock_documents', 'stock_documents.id', '=', 'stock_document_items.stock_document_id')
+            ->where('stock_documents.document_type', 'SALE_OUT')
+            ->where('stock_documents.status', 'POSTED')
+            ->when($request->date_from, fn ($query, $value) => $query->whereDate('stock_documents.document_date', '>=', $value))
+            ->when($request->date_to, fn ($query, $value) => $query->whereDate('stock_documents.document_date', '<=', $value));
+        $totals = (clone $base)->selectRaw('COALESCE(SUM(stock_document_items.quantity * stock_document_items.unit_price),0) revenue, COALESCE(SUM(stock_document_items.quantity * stock_document_items.unit_cost),0) cost')->first();
+        $rows = $base->with(['product', 'document'])->select('stock_document_items.*')->latest('stock_documents.document_date')->paginate(40)->withQueryString();
+
+        return view('reports.cost-profit', compact('rows', 'totals'));
+    }
+
+    public function issues(Request $request)
+    {
+        return $this->documentReport($request, ['PART_OUT', 'WIP_OUT', 'FG_OUT'], 'รายงานเบิก - จ่าย', 'รายการเบิกสินค้าออกจากสต็อก');
+    }
+
+    public function sales(Request $request)
+    {
+        return $this->documentReport($request, ['SALE_OUT'], 'รายงานขาย', 'รายการขาย FG และมูลค่าขาย');
+    }
+
+    public function claims(Request $request)
+    {
+        return $this->documentReport($request, ['CLAIM_IN'], 'รายงานเคลมจากลูกค้า', 'PART, WIP และ FG ที่ลูกค้าส่งเคลม');
+    }
+
+    public function waste(Request $request)
+    {
+        return $this->documentReport($request, ['WASTE_OUT'], 'รายงานของเสีย', 'ของเสียจากลูกค้าและกระบวนการผลิต');
+    }
+
+    private function documentReport(Request $request, array $types, string $title, string $subtitle)
+    {
+        $rows = StockDocument::with(['items.product.unit', 'warehouse', 'creator'])
+            ->whereIn('document_type', $types)
+            ->when($request->date_from, fn ($query, $value) => $query->whereDate('document_date', '>=', $value))
+            ->when($request->date_to, fn ($query, $value) => $query->whereDate('document_date', '<=', $value))
+            ->latest('document_date')->latest('id')->paginate(30)->withQueryString();
+
+        return view('reports.documents', compact('rows', 'title', 'subtitle'));
     }
 }

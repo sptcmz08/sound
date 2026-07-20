@@ -12,7 +12,7 @@
 
 <div class="mb-7 flex flex-wrap items-end justify-between gap-4">
     <div><span class="mb-2 inline-flex rounded-full bg-violet-50 px-3 py-1 text-sm font-bold text-violet-700 ring-1 ring-violet-200">PROCESS LIST</span><h2 class="page-title">{{auth()->user()->isAdmin()?'รายการดำเนินงานทั้งหมด':'รายการของฉัน'}}</h2><p class="page-subtitle">แยกรายการตามสถานะ เพื่อค้นหาและจัดการได้ง่าย</p></div>
-    <div class="flex flex-wrap gap-3"><a href="{{route('requisitions.withdraw')}}" class="btn-secondary">เบิกสินค้า</a><a href="{{route('requisitions.production')}}" class="btn-primary">+ สร้างวิช / FG</a></div>
+    <div class="flex flex-wrap gap-3"><a href="{{route('requisitions.withdraw')}}" class="btn-secondary">เบิกสินค้า</a><a href="{{route('requisitions.production')}}" class="btn-primary">+ ผลิต WIP / FG</a></div>
 </div>
 
 <div class="mb-7 grid gap-3 sm:grid-cols-3">

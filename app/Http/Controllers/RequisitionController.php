@@ -58,8 +58,8 @@ class RequisitionController extends Controller
     {
         return view('requisitions.menu', [
             'mode' => 'production',
-            'title' => 'สร้างอุปกรณ์',
-            'subtitle' => 'เลือกสร้างวิชหรือ FG ระบบจะคำนวณและตัดส่วนประกอบตามสูตร',
+            'title' => 'ส่งเข้า WIP / FG',
+            'subtitle' => 'เลือกผลิต WIP หรือ FG ระบบจะตัดส่วนประกอบตามสูตรและเพิ่มสินค้าที่ผลิตเสร็จเข้าสต็อก',
             'types' => [RequisitionType::BUILD_WIP, RequisitionType::BUILD_FG],
         ]);
     }
@@ -68,7 +68,7 @@ class RequisitionController extends Controller
     {
         $unit = Unit::where('is_active', true)->orderBy('id')->first();
         if (! $unit) {
-            return redirect()->route('settings')->withErrors(['unit' => 'กรุณาเพิ่มหน่วยนับก่อนสร้างวิช']);
+            return redirect()->route('settings')->withErrors(['unit' => 'กรุณาเพิ่มหน่วยนับก่อนผลิต WIP']);
         }
 
         return view('requisitions.create-wip', [
@@ -99,7 +99,7 @@ class RequisitionController extends Controller
             foreach ($data['components'] as $line) {
                 $part = $parts->get((int) $line['product_id']);
                 if (! $part || ! $part->is_active || $part->product_type !== ProductType::PART) {
-                    throw ValidationException::withMessages(['components' => 'สร้างวิชได้จากอะไหล่ทั่วไปที่เปิดใช้งานเท่านั้น']);
+                    throw ValidationException::withMessages(['components' => 'ผลิต WIP ได้จาก PART ที่เปิดใช้งานเท่านั้น']);
                 }
             }
 
@@ -108,7 +108,7 @@ class RequisitionController extends Controller
             if (filled($data['existing_wip_id'] ?? null)) {
                 $product = Product::with('components')->lockForUpdate()->findOrFail($data['existing_wip_id']);
                 if (! $product->is_active || $product->product_type !== ProductType::WIP) {
-                    throw ValidationException::withMessages(['existing_wip_id' => 'วิชที่เลือกไม่พร้อมใช้งาน']);
+                    throw ValidationException::withMessages(['existing_wip_id' => 'WIP ที่เลือกไม่พร้อมใช้งาน']);
                 }
                 $oldProduct = $product->toArray();
                 $product->update(['updated_by' => $request->user()->id]);
@@ -128,7 +128,7 @@ class RequisitionController extends Controller
             }
             if ($request->hasFile('wip_image')) {
                 if ($product->image_path) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image_path);
+                    Storage::disk('public')->delete($product->image_path);
                 }
                 $product->update(['image_path' => $request->file('wip_image')->store('products', 'public')]);
             }
@@ -142,7 +142,7 @@ class RequisitionController extends Controller
                 'warehouse_id' => $data['warehouse_id'],
                 'target_product_id' => $product->id,
                 'target_quantity' => $data['output_quantity'],
-                'purpose' => 'สร้างวิช '.$product->name,
+                'purpose' => 'ผลิต WIP '.$product->name,
                 'note' => null,
             ], $request->user());
 
@@ -153,7 +153,7 @@ class RequisitionController extends Controller
 
         return redirect()->route('requisitions.index', ['focus' => $requisition->id])
             ->with('success', $request->user()->isAdmin()
-                ? 'บันทึกสูตร สร้างวิช และปรับสต็อกเรียบร้อยแล้ว'
+                ? 'บันทึกสูตร ผลิต WIP และปรับสต็อกเรียบร้อยแล้ว'
                 : 'บันทึกสูตรและสร้างใบเบิกแล้ว กรุณาลงนามออนไลน์เพื่อส่งให้แอดมินอนุมัติ');
     }
 
