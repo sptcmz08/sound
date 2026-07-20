@@ -9,6 +9,28 @@
         <p class="page-subtitle">{{$subtitle}}</p>
     </div>
 
+    {{-- Workflow Overview --}}
+    <div class="mb-8 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
+        <h3 class="mb-4 text-sm font-bold uppercase tracking-wider text-blue-700">ขั้นตอนการเบิกสินค้า</h3>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            @php
+                $flowSteps = [
+                    ['icon' => '📋', 'label' => 'เลือกประเภท & กรอกรายการ'],
+                    ['icon' => '✍️', 'label' => 'พนักงานลงนามออนไลน์'],
+                    ['icon' => '✅', 'label' => 'Admin ตรวจสอบ & อนุมัติ'],
+                    ['icon' => '📄', 'label' => 'ได้ PDF ปริ้นส่งแผนกเบิก'],
+                ];
+            @endphp
+            @foreach($flowSteps as $i => $fs)
+            <div class="flex items-center gap-2">
+                <div class="grid size-10 place-items-center rounded-xl bg-white text-lg shadow-sm ring-1 ring-blue-200">{{$fs['icon']}}</div>
+                <span class="text-sm font-bold text-slate-700">{{$fs['label']}}</span>
+            </div>
+            @if(!$loop->last)<span class="hidden text-blue-400 lg:block">→</span>@endif
+            @endforeach
+        </div>
+    </div>
+
     <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         @foreach($types as $type)
         @php
@@ -29,10 +51,6 @@
             </div>
         </a>
         @endforeach
-    </div>
-
-    <div class="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900">
-        <strong>ขั้นตอน:</strong> เลือกประเภท → กรอกรายการ → ผู้ขอลงนามออนไลน์ → แอดมินอนุมัติ → ดาวน์โหลด PDF ที่ลงนามแล้ว
     </div>
 </div>
 @endsection
