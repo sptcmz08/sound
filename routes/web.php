@@ -12,6 +12,7 @@ use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\StockDocumentController;
 use App\Http\Controllers\StockReceiptController;
 use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
