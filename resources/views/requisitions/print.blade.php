@@ -138,7 +138,7 @@
                 </td>
                 <td>
                     <div class="sign-space"></div>
-                    <div class="sign-line">ผู้อนุมัติ</div>
+                    <div class="sign-line">ลายเซ็นผู้อนุมัติ</div>
                     <div class="sign-name">({{ $requisition->approver->name }})</div>
                     <div class="sign-date">วันที่ {{ $requisition->approved_at->format('d/m/Y') }}</div>
                 </td>

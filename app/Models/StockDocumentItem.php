@@ -23,4 +23,9 @@ class StockDocumentItem extends Model
     {
         return $this->belongsTo(StockDocument::class, 'stock_document_id');
     }
+
+    public function options()
+    {
+        return $this->hasMany(SaleItemOption::class, 'stock_document_item_id');
+    }
 }

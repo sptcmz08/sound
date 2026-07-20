@@ -42,4 +42,9 @@ class Product extends Model
     {
         return $this->belongsToMany(self::class, 'product_components', 'component_product_id', 'parent_product_id')->withPivot('quantity')->withTimestamps();
     }
+
+    public function optionGroups()
+    {
+        return $this->hasMany(ProductOptionGroup::class)->orderBy('sort_order')->orderBy('id');
+    }
 }

@@ -17,7 +17,7 @@ class BusinessOperationController extends Controller
     public function create(string $operation)
     {
         $config = $this->config($operation);
-        $products = Product::with(['unit', 'balances'])->where('is_active', true)
+        $products = Product::with(['unit', 'balances', 'optionGroups.items.optionProduct.balances', 'optionGroups.items.optionProduct.unit'])->where('is_active', true)
             ->when($config['product_types'], fn ($query, $types) => $query->whereIn('product_type', $types))
             ->orderBy('product_type')->orderBy('code')->get();
 
@@ -35,6 +35,24 @@ class BusinessOperationController extends Controller
                 'price' => Quantity::format($product->sale_price),
                 'balances' => $product->balances->mapWithKeys(fn ($balance) => [
                     $balance->warehouse_id => Quantity::format($balance->quantity),
+                ]),
+                'optionGroups' => $product->optionGroups->map(fn ($group) => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'is_required' => $group->is_required,
+                    'items' => $group->items->map(fn ($item) => [
+                        'id' => $item->id,
+                        'product_id' => $item->option_product_id,
+                        'code' => $item->optionProduct->code,
+                        'name' => $item->optionProduct->name,
+                        'unit' => $item->optionProduct->unit->name,
+                        'quantity' => Quantity::format($item->quantity),
+                        'additional_price' => Quantity::format($item->additional_price),
+                        'is_default' => $item->is_default,
+                        'balances' => $item->optionProduct->balances->mapWithKeys(fn ($balance) => [
+                            $balance->warehouse_id => Quantity::format($balance->quantity),
+                        ]),
+                    ]),
                 ]),
             ])->values(),
             'idempotencyKey' => (string) Str::uuid(),
@@ -56,6 +74,8 @@ class BusinessOperationController extends Controller
             'items.*.quantity' => ['required', 'decimal:0,4', 'gt:0'],
             'items.*.unit_cost' => [$config['cost_input'] ? 'required' : 'nullable', 'decimal:0,4', 'gte:0'],
             'items.*.unit_price' => [$config['price_input'] ? 'required' : 'nullable', 'decimal:0,4', 'gte:0'],
+            'items.*.options' => ['nullable', 'array'],
+            'items.*.options.*.product_option_item_id' => ['required', 'integer', 'exists:product_option_items,id'],
         ];
         $data = $request->validate($rules);
         $products = Product::whereIn('id', collect($data['items'])->pluck('product_id'))->get()->keyBy('id');
@@ -79,7 +99,7 @@ class BusinessOperationController extends Controller
         return match ($operation) {
             'supplier-receive' => [
                 'title' => 'รับเข้าจาก Supplier', 'subtitle' => 'รับ PART และวัสดุสิ้นเปลืองเข้าสต็อก พร้อมบันทึกต้นทุนล่าสุด',
-                'document_type' => StockDocumentType::SUPPLIER_IN, 'product_types' => [ProductType::PART->value],
+                'document_type' => StockDocumentType::SUPPLIER_IN, 'product_types' => [ProductType::PART->value, ProductType::SUPPLY->value],
                 'party_label' => 'Supplier', 'party_required' => true, 'note_required' => false, 'cost_input' => true, 'price_input' => false, 'direction' => 'in',
             ],
             'sale' => [

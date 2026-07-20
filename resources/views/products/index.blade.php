@@ -21,8 +21,8 @@
     @endif
 </div>
 
-<div class="mb-5 grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-2">
-    @foreach(['PART'=>'PART','WIP'=>'WIP','FG'=>'FG'] as $value=>$label)
+<div class="mb-5 grid grid-cols-4 gap-2 rounded-2xl bg-slate-100 p-2">
+    @foreach(['PART'=>'PART','SUPPLY'=>'SUPPLY','WIP'=>'WIP','FG'=>'FG'] as $value=>$label)
     <a href="{{route('products.index',['type'=>$value])}}" class="rounded-xl px-4 py-3 text-center font-bold transition {{request('type','PART')===$value?'bg-white text-blue-700 shadow-sm':'text-slate-500 hover:text-slate-800'}}">{{$label}}</a>
     @endforeach
 </div>
@@ -31,7 +31,7 @@
         <svg class="pointer-events-none absolute left-4 top-3.5 size-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
         <input class="input pl-11" name="q" value="{{request('q')}}" placeholder="ค้นหารหัสหรือชื่อสินค้า">
     </div>
-    <select class="select w-full sm:w-56" name="type"><option value="PART" @selected(request('type','PART')==='PART')>PART</option><option value="WIP" @selected(request('type')==='WIP')>WIP</option><option value="FG" @selected(request('type')==='FG')>FG</option></select>
+    <select class="select w-full sm:w-56" name="type"><option value="PART" @selected(request('type','PART')==='PART')>PART</option><option value="SUPPLY" @selected(request('type')==='SUPPLY')>SUPPLY</option><option value="WIP" @selected(request('type')==='WIP')>WIP</option><option value="FG" @selected(request('type')==='FG')>FG</option></select>
     <button class="btn-secondary">ค้นหา</button>
 </form>
 
@@ -47,15 +47,15 @@
             @forelse($products as $p)
                 <tr>
                     <td><div class="flex items-center gap-3"><x-product-image :product="$p" /><div><strong class="block text-slate-950">{{$p->name}}</strong><span class="font-mono text-sm text-slate-500">{{$p->code}}</span></div></div></td>
-                    <td><span class="{{$p->product_type->value==='PART'?'badge-blue':($p->product_type->value==='WIP'?'badge-amber':'badge-green')}}">{{$p->product_type->label()}}</span></td>
+                    <td><span class="{{$p->product_type->value==='PART'?'badge-blue':($p->product_type->value==='SUPPLY'?'badge-slate':($p->product_type->value==='WIP'?'badge-amber':'badge-green'))}}">{{$p->product_type->label()}}</span></td>
                     <td class="text-right"><strong class="text-xl text-slate-950">{{\App\Support\Quantity::format($p->balances_sum_quantity ?? 0)}}</strong></td>
                     <td>{{$p->unit->name}}</td>
-                    <td>{{$p->product_type->value==='PART' ? '—' : $p->components_count.' รายการ'}}</td>
+                    <td>{{in_array($p->product_type->value, ['PART', 'SUPPLY'], true) ? '—' : $p->components_count.' รายการ'}}</td>
                     <td><span class="{{$p->is_active?'badge-green':'badge-slate'}}">{{$p->is_active?'ใช้งาน':'ปิดใช้งาน'}}</span></td>
                     <td class="text-right">
                         @if(auth()->user()->isAdmin())
                         <div class="flex justify-end gap-2">
-                            @if($p->is_active && $p->product_type === \App\Enums\ProductType::PART)
+                            @if($p->is_active && in_array($p->product_type->value, ['PART', 'SUPPLY'], true))
                             <button type="button" class="btn-success px-3 py-2 text-sm" data-open-receive data-product="{{$p->id}}" data-product-name="{{$p->code}} — {{$p->name}}" data-unit="{{$p->unit->name}}">+ รับเข้า</button>
                             @endif
                             <a class="btn-secondary px-3 py-2 text-sm" href="{{route('products.edit',$p)}}">แก้ไข</a>

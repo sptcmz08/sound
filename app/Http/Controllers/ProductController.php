@@ -36,7 +36,7 @@ class ProductController extends Controller
 
         return view('products.index', [
             'products' => $products,
-            'receiptProducts' => Product::with('unit')->where('is_active', true)->where('product_type', ProductType::PART)->orderBy('code')->get(),
+            'receiptProducts' => Product::with('unit')->where('is_active', true)->whereIn('product_type', [ProductType::PART, ProductType::SUPPLY])->orderBy('code')->get(),
             'warehouses' => Warehouse::where('is_active', true)->orderBy('code')->get(),
         ]);
     }
@@ -54,7 +54,7 @@ class ProductController extends Controller
     public function store(ProductRequest $request, AuditLogService $audit)
     {
         $product = DB::transaction(function () use ($request, $audit) {
-            $data = $request->safe()->except(['image', 'components']);
+            $data = $request->safe()->except(['image', 'components', 'option_groups']);
             $data['standard_cost'] = $data['standard_cost'] ?? 0;
             $data['sale_price'] = $data['sale_price'] ?? 0;
             $data['created_by'] = $data['updated_by'] = $request->user()->id;
@@ -66,7 +66,8 @@ class ProductController extends Controller
             $this->validateComponents($data['product_type'], $request->input('components', []));
             $product = Product::create($data);
             $this->syncComponents($product, $request->input('components', []));
-            $audit->record($request->user(), 'CREATE', 'product', $product->id, null, $product->load('components')->toArray());
+            $this->syncOptionGroups($product, $request->input('option_groups', []));
+            $audit->record($request->user(), 'CREATE', 'product', $product->id, null, $product->load(['components', 'optionGroups.items.optionProduct'])->toArray());
 
             return $product;
         });
@@ -79,14 +80,14 @@ class ProductController extends Controller
         $units = Unit::where(fn ($query) => $query->where('is_active', true)->orWhere('id', $product->unit_id))
             ->orderBy('code')->get();
 
-        return view('products.form', $this->formData($product->load('components'), $units));
+        return view('products.form', $this->formData($product->load(['components', 'optionGroups.items.optionProduct']), $units));
     }
 
     public function update(ProductRequest $request, Product $product, AuditLogService $audit)
     {
         DB::transaction(function () use ($request, $product, $audit) {
-            $old = $product->load('components')->toArray();
-            $data = $request->safe()->except(['image', 'components']);
+            $old = $product->load(['components', 'optionGroups.items.optionProduct'])->toArray();
+            $data = $request->safe()->except(['image', 'components', 'option_groups']);
             $data['updated_by'] = $request->user()->id;
             $data['is_active'] = $request->boolean('is_active');
             $data['is_consumable'] = $request->boolean('is_consumable');
@@ -99,7 +100,8 @@ class ProductController extends Controller
             $this->validateComponents($data['product_type'], $request->input('components', []), $product->id);
             $product->update($data);
             $this->syncComponents($product, $request->input('components', []));
-            $audit->record($request->user(), 'UPDATE', 'product', $product->id, $old, $product->fresh()->load('components')->toArray());
+            $this->syncOptionGroups($product, $request->input('option_groups', []));
+            $audit->record($request->user(), 'UPDATE', 'product', $product->id, $old, $product->fresh()->load(['components', 'optionGroups.items.optionProduct'])->toArray());
         });
 
         return redirect()->route('products.index')->with('success', 'บันทึกสินค้าและสูตรแล้ว');
@@ -135,8 +137,8 @@ class ProductController extends Controller
     private function validateComponents(string $typeValue, array $components, ?int $productId = null): void
     {
         $type = ProductType::from($typeValue);
-        if ($type === ProductType::PART && count($components)) {
-            throw ValidationException::withMessages(['components' => 'PART ไม่ต้องมีสูตรส่วนประกอบ']);
+        if (in_array($type, [ProductType::PART, ProductType::SUPPLY], true) && count($components)) {
+            throw ValidationException::withMessages(['components' => 'PART และ SUPPLY ไม่ต้องมีสูตรส่วนประกอบ']);
         }
         if (in_array($type, [ProductType::WIP, ProductType::FG], true) && ! count($components)) {
             throw ValidationException::withMessages(['components' => 'กรุณาเพิ่มส่วนประกอบอย่างน้อย 1 รายการ']);
@@ -160,5 +162,43 @@ class ProductController extends Controller
             (int) $line['product_id'] => ['quantity' => $line['quantity']],
         ])->all();
         $product->components()->sync($sync);
+    }
+
+    private function syncOptionGroups(Product $product, array $optionGroups): void
+    {
+        if ($product->product_type !== ProductType::FG) {
+            $product->optionGroups()->delete();
+            return;
+        }
+
+        $existingGroupIds = [];
+        foreach ($optionGroups as $groupIndex => $groupData) {
+            $group = $product->optionGroups()->updateOrCreate(
+                ['id' => $groupData['id'] ?? null],
+                [
+                    'name' => $groupData['name'],
+                    'is_required' => filter_var($groupData['is_required'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'sort_order' => $groupIndex,
+                ]
+            );
+            $existingGroupIds[] = $group->id;
+
+            $existingItemIds = [];
+            foreach ($groupData['items'] as $itemIndex => $itemData) {
+                $item = $group->items()->updateOrCreate(
+                    ['id' => $itemData['id'] ?? null],
+                    [
+                        'option_product_id' => $itemData['option_product_id'],
+                        'quantity' => $itemData['quantity'],
+                        'additional_price' => $itemData['additional_price'] ?? 0,
+                        'is_default' => filter_var($itemData['is_default'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                        'sort_order' => $itemIndex,
+                    ]
+                );
+                $existingItemIds[] = $item->id;
+            }
+            $group->items()->whereNotIn('id', $existingItemIds)->delete();
+        }
+        $product->optionGroups()->whereNotIn('id', $existingGroupIds)->delete();
     }
 }

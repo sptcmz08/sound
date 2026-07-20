@@ -56,6 +56,32 @@ class StockService
                         'note' => $line['note'] ?? null,
                     ]);
                     $this->apply($doc, $item->id, $product, $type->isInbound(), (string) $line['quantity'], $user, $this->transactionType($type));
+                    
+                    if (isset($line['options']) && is_array($line['options'])) {
+                        foreach ($line['options'] as $optLine) {
+                            $optionItem = \App\Models\ProductOptionItem::with('optionProduct')->findOrFail($optLine['product_option_item_id']);
+                            
+                            $optQtyPerUnit = BigDecimal::of($optionItem->quantity);
+                            $mainQty = BigDecimal::of($line['quantity']);
+                            $totalOptQty = $mainQty->multipliedBy($optQtyPerUnit);
+                            
+                            $item->options()->create([
+                                'product_option_item_id' => $optionItem->id,
+                                'quantity' => (string) $totalOptQty,
+                            ]);
+                            
+                            $this->apply(
+                                $doc,
+                                $item->id,
+                                $optionItem->optionProduct,
+                                false,
+                                (string) $totalOptQty,
+                                $user,
+                                StockTransactionType::OUT
+                            );
+                        }
+                    }
+
                     if ($type === StockDocumentType::SUPPLIER_IN && array_key_exists('unit_cost', $line)) {
                         $product->update(['standard_cost' => (string) $line['unit_cost'], 'updated_by' => $user->id]);
                     }

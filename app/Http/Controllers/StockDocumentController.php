@@ -62,7 +62,7 @@ class StockDocumentController extends Controller
 
     public function show(StockDocument $document)
     {
-        return view('documents.show', ['document' => $document->load(['items.product.unit', 'warehouse', 'creator', 'poster', 'reversal'])]);
+        return view('documents.show', ['document' => $document->load(['items.product.unit', 'items.options.optionItem.group', 'items.options.optionItem.optionProduct', 'warehouse', 'creator', 'poster', 'reversal'])]);
     }
 
     public function cancel(Request $r, StockDocument $document, StockService $service)

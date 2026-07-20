@@ -6,14 +6,26 @@
     $currentType = old('product_type', $product->product_type?->value ?? 'PART');
     $oldComponents = old('components', $product->exists ? $product->components->map(fn($c) => ['product_id' => $c->id, 'quantity' => $c->pivot->quantity])->values()->all() : []);
     $componentJson = $componentProducts->map(fn($p) => ['id' => $p->id, 'code' => $p->code, 'name' => $p->name, 'type' => $p->product_type->value, 'unit' => $p->unit->name])->values()->toJson();
+    $oldOptionGroups = old('option_groups', $product->exists ? $product->optionGroups->map(fn($g) => [
+        'id' => $g->id,
+        'name' => $g->name,
+        'is_required' => $g->is_required,
+        'items' => $g->items->map(fn($i) => [
+            'id' => $i->id,
+            'option_product_id' => $i->option_product_id,
+            'quantity' => $i->quantity,
+            'additional_price' => $i->additional_price,
+            'is_default' => $i->is_default,
+        ])->values()->all()
+    ])->values()->all() : []);
 @endphp
 <div class="mb-7 flex items-start justify-between gap-4">
-    <div><h2 class="page-title">{{ $product->exists ? 'แก้ไขรายการ' : 'สร้างรายการใหม่' }}</h2><p class="page-subtitle">PART เพิ่มได้ทันที ส่วน WIP และ FG ให้กำหนดสูตรที่ใช้ต่อ 1 ชิ้น</p></div>
+    <div><h2 class="page-title">{{ $product->exists ? 'แก้ไขรายการ' : 'สร้างรายการใหม่' }}</h2><p class="page-subtitle">PART และ SUPPLY เพิ่มได้ทันที ส่วน WIP และ FG ให้กำหนดสูตรหรือตัวเลือกเพิ่มเติม</p></div>
     <a href="{{route('products.index')}}" class="btn-secondary">กลับ</a>
 </div>
 <form method="post" action="{{$product->exists ? route('products.update',$product) : route('products.store')}}" enctype="multipart/form-data" class="space-y-6" id="product-form">
     @csrf @if($product->exists) @method('PUT') @endif
-    <section class="panel"><div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">ข้อมูลสินค้า</h3><p class="mt-1 text-slate-500">ไม่ใช้ Barcode — แอดมินเลือกรายการและคีย์จำนวนโดยตรง</p></div></div>
+    <section class="panel"><div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">ข้อมูลสินค้า</h3><p class="mt-1 text-slate-500">เลือกประเภทสินค้าที่ถูกต้องเพื่อเริ่มจัดการ</p></div></div>
         <div class="panel-body grid gap-5 md:grid-cols-2">
             <div class="md:col-span-2">
                 <span class="label">รูปสินค้า</span>
@@ -27,7 +39,7 @@
             </div>
             <label><span class="label">รหัสสินค้า *</span><input name="code" class="input" value="{{old('code',$product->code)}}" required></label>
             <label><span class="label">ชื่อสินค้า *</span><input name="name" class="input" value="{{old('name',$product->name)}}" required></label>
-            <label><span class="label">ประเภท *</span><select name="product_type" id="product-type" class="select" required><option value="PART" @selected($currentType==='PART')>PART (ชิ้นส่วน/วัสดุสิ้นเปลือง)</option><option value="WIP" @selected($currentType==='WIP')>WIP (งานระหว่างประกอบ)</option><option value="FG" @selected($currentType==='FG')>FG (สินค้าพร้อมขาย)</option></select></label>
+            <label><span class="label">ประเภท *</span><select name="product_type" id="product-type" class="select" required><option value="PART" @selected($currentType==='PART')>PART (ชิ้นส่วนอะไหล่)</option><option value="SUPPLY" @selected($currentType==='SUPPLY')>SUPPLY (วัสดุสิ้นเปลือง)</option><option value="WIP" @selected($currentType==='WIP')>WIP (งานระหว่างประกอบ)</option><option value="FG" @selected($currentType==='FG')>FG (สินค้าสำเร็จรูป)</option></select></label>
             <label><span class="label">หน่วยนับ *</span><select name="unit_id" class="select" required>@foreach($units as $unit)<option value="{{$unit->id}}" @selected(old('unit_id',$product->unit_id)==$unit->id)>{{$unit->name}} ({{$unit->code}})</option>@endforeach</select></label>
             <label><span class="label">จุดเตือนสต็อกต่ำ</span><input type="number" min="0" step="0.0001" name="minimum_stock" class="input" value="{{old('minimum_stock',$product->minimum_stock ?? 0)}}" required></label>
             <label><span class="label">ต้นทุนมาตรฐาน / หน่วย *</span><input type="number" min="0" step="0.0001" name="standard_cost" class="input" value="{{old('standard_cost',$product->standard_cost ?? 0)}}" required></label>
@@ -35,13 +47,19 @@
             <label><span class="label">ที่เก็บ</span><input name="location_text" class="input" value="{{old('location_text',$product->location_text)}}" placeholder="เช่น ชั้น A-02"></label>
             <label class="md:col-span-2"><span class="label">หมายเหตุ</span><textarea name="note" class="input" rows="3">{{old('note',$product->note)}}</textarea></label>
             <label class="flex items-center gap-3"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" class="size-5 rounded" @checked(old('is_active',$product->exists ? $product->is_active : true))><span class="font-semibold">เปิดใช้งาน</span></label>
-            <label class="flex items-center gap-3"><input type="hidden" name="is_consumable" value="0"><input type="checkbox" name="is_consumable" value="1" class="size-5 rounded" @checked(old('is_consumable',$product->is_consumable))><span class="font-semibold">เป็นวัสดุสิ้นเปลือง</span></label>
         </div>
     </section>
+
     <section class="panel" id="recipe-panel">
         <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">สูตรส่วนประกอบต่อ 1 ชิ้น</h3><p class="mt-1 text-slate-500" id="recipe-help"></p></div><button type="button" id="add-component" class="btn-secondary">+ เพิ่มส่วนประกอบ</button></div>
         <div class="panel-body space-y-3" id="component-list"></div>
     </section>
+
+    <section class="panel" id="options-panel">
+        <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">ตัวเลือกเสริมสำหรับขาย (Options)</h3><p class="mt-1 text-slate-500">กำหนดกลุ่มและรายการตัวเลือก (WIP/PART) สำหรับให้พนักงานเลือกตัดสต็อกตอนขาย</p></div><button type="button" id="add-option-group" class="btn-secondary">+ เพิ่มกลุ่ม Option</button></div>
+        <div class="panel-body space-y-6" id="option-group-list"></div>
+    </section>
+
     <div class="flex justify-end gap-3"><a href="{{route('products.index')}}" class="btn-secondary">ยกเลิก</a><button class="btn-primary">บันทึกสินค้าและสูตร</button></div>
 </form>
 @endsection
@@ -50,9 +68,147 @@
 const products = {!! $componentJson !!};
 const imageInput=document.getElementById('product-image-input'), newImage=document.getElementById('new-product-image'), currentImage=document.getElementById('current-product-image');
 imageInput?.addEventListener('change',()=>{const file=imageInput.files?.[0];if(!file)return;newImage.src=URL.createObjectURL(file);newImage.classList.remove('hidden');currentImage?.classList.add('hidden')});
-let rows = @json($oldComponents); const list=document.getElementById('component-list'), type=document.getElementById('product-type'), panel=document.getElementById('recipe-panel');
+
+let rows = @json($oldComponents);
+const list=document.getElementById('component-list'), type=document.getElementById('product-type'), panel=document.getElementById('recipe-panel');
 function options(selected){const allowed=products.filter(p=>type.value==='FG'||p.type==='PART');return '<option value="">เลือกส่วนประกอบ</option>'+allowed.map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${p.code} — ${p.name} (${p.type})</option>`).join('')}
-function render(){panel.classList.toggle('hidden',type.value==='PART');document.getElementById('recipe-help').textContent=type.value==='WIP'?'WIP ใช้ PART เป็นส่วนประกอบ':'FG ใช้ได้ทั้ง PART และ WIP';list.innerHTML=rows.map((r,i)=>`<div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_220px_auto]"><select class="select" name="components[${i}][product_id]" required>${options(r.product_id)}</select><input class="input" type="number" min="0.0001" step="0.0001" name="components[${i}][quantity]" value="${r.quantity||1}" placeholder="จำนวนต่อ 1 ชิ้น" required><button type="button" class="btn-danger" onclick="rows.splice(${i},1);render()">ลบ</button></div>`).join('')||'<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีส่วนประกอบ กด “เพิ่มส่วนประกอบ”</div>'}
-type.addEventListener('change',()=>{rows=[];render()});document.getElementById('add-component').addEventListener('click',()=>{rows.push({product_id:'',quantity:1});render()});render();
+function render(){panel.classList.toggle('hidden',['PART', 'SUPPLY'].includes(type.value));document.getElementById('recipe-help').textContent=type.value=='WIP'?'WIP ใช้ PART เป็นส่วนประกอบ':'FG ใช้ได้ทั้ง PART และ WIP';list.innerHTML=rows.map((r,i)=>`<div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_220px_auto]"><select class="select" name="components[${i}][product_id]" required>${options(r.product_id)}</select><input class="input" type="number" min="0.0001" step="0.0001" name="components[${i}][quantity]" value="${r.quantity||1}" placeholder="จำนวนต่อ 1 ชิ้น" required><button type="button" class="btn-danger" onclick="rows.splice(${i},1);render()">ลบ</button></div>`).join('')||'<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีส่วนประกอบ กด “เพิ่มส่วนประกอบ”</div>'}
+type.addEventListener('change',()=>{rows=[];optionGroups=[];render();renderOptions()});document.getElementById('add-component').addEventListener('click',()=>{rows.push({product_id:'',quantity:1});render()});
+
+let optionGroups = @json($oldOptionGroups);
+const optGroupList = document.getElementById('option-group-list'), optPanel = document.getElementById('options-panel');
+
+function optionProductsOptions(selectedId) {
+    return '<option value="">เลือกตัวเลือก (WIP/PART)</option>' + products.map(p => 
+        `<option value="${p.id}" ${String(selectedId) === String(p.id) ? 'selected' : ''}>${p.code} — ${p.name} (${p.type})</option>`
+    ).join('');
+}
+
+function renderOptions() {
+    optPanel.classList.toggle('hidden', type.value !== 'FG');
+    if (type.value !== 'FG') {
+        optGroupList.innerHTML = '';
+        return;
+    }
+    
+    optGroupList.innerHTML = optionGroups.map((g, gIdx) => {
+        const itemsHtml = (g.items || []).map((item, iIdx) => `
+            <div class="grid gap-3 items-end rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-[1fr_120px_160px_100px_auto]">
+                <input type="hidden" name="option_groups[${gIdx}][items][${iIdx}][id]" value="${item.id || ''}">
+                <label>
+                    <span class="text-xs text-slate-500 font-bold block mb-1">ตัวเลือกสินค้า *</span>
+                    <select class="select" name="option_groups[${gIdx}][items][${iIdx}][option_product_id]" required>
+                        ${optionProductsOptions(item.option_product_id)}
+                    </select>
+                </label>
+                <label>
+                    <span class="text-xs text-slate-500 font-bold block mb-1">จำนวนตัดสต็อก *</span>
+                    <input class="input" type="number" min="0.0001" step="0.0001" name="option_groups[${gIdx}][items][${iIdx}][quantity]" value="${item.quantity || 1}" required>
+                </label>
+                <label>
+                    <span class="text-xs text-slate-500 font-bold block mb-1">บวกราคาเพิ่ม (บาท) *</span>
+                    <input class="input" type="number" min="0" step="0.01" name="option_groups[${gIdx}][items][${iIdx}][additional_price]" value="${item.additional_price || 0}" required>
+                </label>
+                <label class="flex flex-col items-center justify-center h-full">
+                    <span class="text-xs text-slate-500 font-bold block mb-2 text-center w-full">เริ่มต้น</span>
+                    <input type="hidden" name="option_groups[${gIdx}][items][${iIdx}][is_default]" value="0">
+                    <input type="checkbox" name="option_groups[${gIdx}][items][${iIdx}][is_default]" value="1" ${item.is_default ? 'checked' : ''} class="size-5 rounded" onclick="handleDefaultCheck(${gIdx}, ${iIdx}, this)">
+                </label>
+                <div class="flex items-center h-full pt-6">
+                    <button type="button" class="btn-danger py-2 px-3" onclick="removeOptionItem(${gIdx}, ${iIdx})">ลบ</button>
+                </div>
+            </div>
+        `).join('') || '<div class="text-center text-slate-400 py-3">ยังไม่มีตัวเลือกในกลุ่มนี้</div>';
+
+        return `
+            <div class="rounded-2xl border-2 border-slate-200 bg-slate-50 p-5 space-y-4">
+                <input type="hidden" name="option_groups[${gIdx}][id]" value="${g.id || ''}">
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-3">
+                    <div class="flex-1 min-w-[250px] flex items-center gap-4">
+                        <label class="flex-1">
+                            <span class="text-sm font-bold text-slate-900">ชื่อกลุ่ม Option *</span>
+                            <input class="input mt-1" name="option_groups[${gIdx}][name]" value="${g.name || ''}" placeholder="เช่น มือจับ, สไตล์หิ้ว, คาราโอเกะ" required>
+                        </label>
+                        <label class="flex items-center gap-2 pt-6">
+                            <input type="hidden" name="option_groups[${gIdx}][is_required]" value="0">
+                            <input type="checkbox" name="option_groups[${gIdx}][is_required]" value="1" ${g.is_required ? 'checked' : ''} class="size-5 rounded">
+                            <span class="text-sm font-bold text-slate-700">บังคับเลือก</span>
+                        </label>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="btn-secondary text-sm px-3 py-1.5" onclick="addOptionItem(${gIdx})">+ เพิ่มตัวเลือก</button>
+                        <button type="button" class="btn-danger text-sm px-3 py-1.5" onclick="removeOptionGroup(${gIdx})">ลบกลุ่มนี้</button>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
+    }).join('') || '<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีกลุ่ม Option สำหรับสินค้าสำเร็จรูปนี้</div>';
+}
+
+function handleDefaultCheck(gIdx, iIdx, checkbox) {
+    syncStateFromDOM();
+    if (checkbox.checked) {
+        optionGroups[gIdx].items.forEach((item, index) => {
+            item.is_default = (index === iIdx);
+        });
+    } else {
+        optionGroups[gIdx].items[iIdx].is_default = false;
+    }
+    renderOptions();
+}
+
+function addOptionGroup() {
+    syncStateFromDOM();
+    optionGroups.push({ id: '', name: '', is_required: false, items: [] });
+    renderOptions();
+}
+
+function removeOptionGroup(gIdx) {
+    syncStateFromDOM();
+    optionGroups.splice(gIdx, 1);
+    renderOptions();
+}
+
+function addOptionItem(gIdx) {
+    syncStateFromDOM();
+    if (!optionGroups[gIdx].items) optionGroups[gIdx].items = [];
+    optionGroups[gIdx].items.push({ id: '', option_product_id: '', quantity: 1, additional_price: 0, is_default: false });
+    renderOptions();
+}
+
+function removeOptionItem(gIdx, iIdx) {
+    syncStateFromDOM();
+    optionGroups[gIdx].items.splice(iIdx, 1);
+    renderOptions();
+}
+
+function syncStateFromDOM() {
+    optionGroups.forEach((g, gIdx) => {
+        const nameInput = document.querySelector(`input[name="option_groups[${gIdx}][name]"]`);
+        if (nameInput) g.name = nameInput.value;
+        const reqInput = document.querySelector(`input[name="option_groups[${gIdx}][is_required]"][type="checkbox"]`);
+        if (reqInput) g.is_required = reqInput.checked;
+
+        (g.items || []).forEach((item, iIdx) => {
+            const prodInput = document.querySelector(`select[name="option_groups[${gIdx}][items][${iIdx}][option_product_id]"]`);
+            if (prodInput) item.option_product_id = prodInput.value;
+            const qtyInput = document.querySelector(`input[name="option_groups[${gIdx}][items][${iIdx}][quantity]"]`);
+            if (qtyInput) item.quantity = qtyInput.value;
+            const priceInput = document.querySelector(`input[name="option_groups[${gIdx}][items][${iIdx}][additional_price]"]`);
+            if (priceInput) item.additional_price = priceInput.value;
+            const defInput = document.querySelector(`input[name="option_groups[${gIdx}][items][${iIdx}][is_default]"][type="checkbox"]`);
+            if (defInput) item.is_default = defInput.checked;
+        });
+    });
+}
+
+document.getElementById('add-option-group').addEventListener('click', addOptionGroup);
+
+// Initial run
+render();
+renderOptions();
 </script>
 @endpush
