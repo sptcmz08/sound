@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 session_start();
 
-const DEPLOY_TOKEN_HASH = 'b4f84ab161f6f060b69335c708f9d4b8a1352209f9a823902d80415b715e4d78';
+const DEPLOY_TOKEN_HASH = '7b32248c2a04d1eabc0f84c42a76ab2d0b547b7dc05dd1c357dd94feb777e2b2';
 const SESSION_LIFETIME = 900;
 
 header('X-Robots-Tag: noindex, nofollow', true);
