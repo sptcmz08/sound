@@ -124,6 +124,10 @@
                         <td class="text-right">
                             @if(auth()->user()->isAdmin())
                             <div class="flex justify-end items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-3 font-semibold flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#quickImageModal" data-product-id="{{ $p->id }}" data-product-name="{{ $p->code }} — {{ $p->name }}" data-image-url="{{ $p->image_path ? route('products.image', $p) : '' }}" title="อัปโหลด/เปลี่ยนรูปภาพสินค้า">
+                                    <i class="bi bi-camera-fill"></i>
+                                    <span>รูปภาพ</span>
+                                </button>
                                 @if($p->is_active && in_array($p->product_type->value, ['PART', 'SUPPLY'], true))
                                 <button type="button" class="btn-success px-3 py-1.5 text-xs font-bold shadow-sm" data-open-receive data-product="{{ $p->id }}" data-product-name="{{ $p->code }} — {{ $p->name }}" data-unit="{{ $p->unit->name }}">
                                     + รับเข้า
@@ -216,6 +220,43 @@
         </form>
     </dialog>
     @endif
+
+    {{-- Quick Image Upload Modal (Bootstrap 5) --}}
+    @if(auth()->user()->isAdmin())
+    <div class="modal fade" id="quickImageModal" tabindex="-1" aria-labelledby="quickImageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="quick-image-form" method="post" action="" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                @csrf
+                <div class="modal-header bg-primary text-white p-4">
+                    <h5 class="modal-title font-bold flex items-center gap-2" id="quickImageModalLabel">
+                        <i class="bi bi-camera-fill"></i> อัปโหลดรูปภาพสินค้า
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <p id="quick-image-product-name" class="fw-bold text-dark fs-5 mb-3"></p>
+                    <div class="mb-4">
+                        <img id="quick-image-preview" src="" class="img-thumbnail rounded-4 shadow-sm mx-auto d-block" style="max-height: 200px; display: none;" alt="รูปตัวอย่าง">
+                        <div id="quick-image-placeholder" class="p-5 border border-2 border-dashed rounded-4 bg-light text-muted">
+                            <i class="bi bi-cloud-arrow-up text-primary display-4 d-block mb-2"></i>
+                            <span>เลือกรูปภาพสินค้า (JPG, PNG, WEBP)</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <input type="file" name="image" id="quick-image-input" class="form-control rounded-3" accept="image/jpeg,image/png,image/jpg,image/webp" required>
+                    </div>
+                    <small class="text-muted d-block mt-2">ขนาดไฟล์ไม่เกิน 2 MB</small>
+                </div>
+                <div class="modal-footer bg-light p-3">
+                    <button type="button" class="btn btn-secondary rounded-3 px-4 font-bold" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary rounded-3 px-4 font-bold">
+                        <i class="bi bi-check-lg me-1"></i> บันทึกรูปภาพ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 </div>
 @endsection
 
@@ -235,6 +276,46 @@ document.addEventListener('DOMContentLoaded', () => {
     product?.addEventListener('change', updateUnit);
     dialog?.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
     @if(request('receive')) dialog?.showModal(); @endif
+
+    // Quick Image Modal JS
+    const quickImageModal = document.getElementById('quickImageModal');
+    if (quickImageModal) {
+        quickImageModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const productId = button.getAttribute('data-product-id');
+            const productName = button.getAttribute('data-product-name');
+            const imageUrl = button.getAttribute('data-image-url');
+
+            document.getElementById('quick-image-product-name').textContent = productName;
+            document.getElementById('quick-image-form').action = `/products/${productId}/quick-image`;
+
+            const previewImg = document.getElementById('quick-image-preview');
+            const placeholder = document.getElementById('quick-image-placeholder');
+            if (imageUrl) {
+                previewImg.src = imageUrl;
+                previewImg.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                previewImg.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
+        });
+
+        document.getElementById('quick-image-input')?.addEventListener('change', event => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const previewImg = document.getElementById('quick-image-preview');
+                    const placeholder = document.getElementById('quick-image-placeholder');
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                    placeholder.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
 });
 </script>
 @endpush

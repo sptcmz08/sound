@@ -109,6 +109,21 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success', 'บันทึกสินค้าและสูตรแล้ว');
     }
 
+    public function quickImage(Request $request, Product $product)
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+        ]);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+        $path = $request->file('image')->store('products', 'public');
+        $product->update(['image_path' => $path]);
+
+        return back()->with('success', 'อัปโหลดรูปสินค้า (' . $product->name . ') เรียบร้อยแล้ว');
+    }
+
     public function destroy(Request $request, Product $product, AuditLogService $audit)
     {
         abort_unless($request->user()->isAdmin(), 403);

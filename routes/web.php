@@ -100,6 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/my-signature', [SignatureController::class, 'update'])->name('signature.update');
     Route::get('/my-signature/{signature}', [SignatureController::class, 'show'])->name('signature.show');
     Route::middleware('role:ADMIN')->group(function () {
+        Route::post('/products/{product}/quick-image', [ProductController::class, 'quickImage'])->name('products.quick-image');
         Route::resource('products', ProductController::class)->except(['index', 'show']);
         Route::get('/stock/receive', [StockReceiptController::class, 'create'])->name('stock.receive');
         Route::post('/stock/receive', [StockReceiptController::class, 'store'])->name('stock.receive.store');
