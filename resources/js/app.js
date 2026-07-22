@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     backdrop?.addEventListener('click', close);
     desktopToggle?.addEventListener('click', () => {
         const isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed');
-        localStorage.setItem('simple-stock-sidebar', isCollapsed ? 'collapsed' : 'expanded');
+        localStorage.setItem('wip-stock-sidebar', isCollapsed ? 'collapsed' : 'expanded');
     });
     sidebar?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
         if (window.innerWidth < 1024) close();

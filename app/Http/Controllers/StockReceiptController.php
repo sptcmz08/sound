@@ -14,7 +14,7 @@ class StockReceiptController extends Controller
 {
     public function create()
     {
-        return redirect()->route('products.index', ['receive' => 1]);
+        return redirect()->route('operations.create', 'supplier-receive');
     }
 
     public function store(Request $request, StockService $stock)

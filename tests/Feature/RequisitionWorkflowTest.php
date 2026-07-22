@@ -62,8 +62,9 @@ class RequisitionWorkflowTest extends TestCase
         $this->assertSame('100', StockBalance::where('product_id', $this->part->id)->first()->quantity);
         $this->actingAs($this->admin)->get(route('products.index'))
             ->assertOk()
-            ->assertSee('รับสินค้าเข้าสต็อก')
-            ->assertSee('data-open-receive', false);
+            ->assertSee('รับสินค้าเข้า')
+            ->assertSee(route('operations.create', 'supplier-receive'), false)
+            ->assertDontSee('data-open-receive', false);
         $this->actingAs($this->staff)->get(route('stock.receive'))->assertForbidden();
     }
 

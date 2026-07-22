@@ -2,15 +2,10 @@
 @section('title', $config['title'])
 @section('header', $config['title'])
 @section('content')
-<div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-4">
+<div class="space-y-5">
+    <div class="page-head">
         <div>
-            <div class="flex items-center gap-2 mb-1">
-                <span class="{{ $config['direction']==='in' ? 'badge-green' : 'badge-amber' }}">
-                    {{ $config['direction']==='in' ? '↑ รับเข้าสต็อก' : '↓ จ่ายออกจากสต็อก' }}
-                </span>
-                <span class="text-xs text-slate-400 font-semibold">• บันทึกประวัติและปรับปรุงยอดคงเหลือทันที</span>
-            </div>
+            <span class="page-kicker">{{ $config['direction']==='in' ? 'รับเข้าสต็อก' : 'จ่ายออกจากสต็อก' }}</span>
             <h2 class="page-title">{{ $config['title'] }}</h2>
             <p class="page-subtitle">{{ $config['subtitle'] }}</p>
         </div>
@@ -25,7 +20,7 @@
     <form id="operation-form" method="post" action="{{ route('operations.store', $operation) }}" class="space-y-6">
         @csrf
         <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">
-        
+        <div class="grid items-start gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
         <section class="panel">
             <div class="panel-header">
                 <div>
@@ -36,7 +31,7 @@
                     {{ $config['direction']==='in' ? 'STOCK IN' : 'STOCK OUT' }}
                 </span>
             </div>
-            <div class="panel-body grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <div class="panel-body space-y-4">
                 <label>
                     <span class="label">วันที่ทำรายการ *</span>
                     <input class="input" type="date" name="document_date" value="{{ old('document_date', today()->format('Y-m-d')) }}" required>
@@ -60,7 +55,7 @@
                     <span class="label">เลขที่เอกสารอ้างอิง</span>
                     <input class="input" name="reference_no" value="{{ old('reference_no') }}" placeholder="เช่น PO-001 / INV-1234">
                 </label>
-                <label class="md:col-span-2 xl:col-span-4">
+                <label>
                     <span class="label">หมายเหตุ {{ $config['note_required'] ? '*' : '' }}</span>
                     <textarea class="input" name="note" rows="2" {{ $config['note_required'] ? 'required' : '' }} placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับการตรวจสอบย้อนหลัง...">{{ old('note') }}</textarea>
                 </label>
@@ -73,12 +68,12 @@
                     <h3 class="text-lg font-bold text-slate-900">รายการสินค้า</h3>
                     <p class="text-xs text-slate-500">{{ $operation === 'sale' ? 'เลือก FG และ Option ที่ลูกค้าต้องการ ระบบจะตัดสต็อก FG/WIP/PART พร้อมกัน' : 'เลือกสินค้าและระบุจำนวนที่ต้องการทำรายการ' }}</p>
                 </div>
-                <button type="button" id="add-item" class="btn-primary shadow-lg shadow-blue-500/20">
+                <button type="button" id="add-item" class="btn-primary">
                     + เพิ่มรายการสินค้า
                 </button>
             </div>
             <div class="panel-body">
-                <div class="table-wrap rounded-2xl border border-slate-200/80 bg-white">
+                <div class="table-wrap rounded-lg border border-slate-200 bg-white">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -94,14 +89,15 @@
                         <tbody id="item-rows"></tbody>
                     </table>
                 </div>
-                <div id="empty-items" class="rounded-2xl border-2 border-dashed border-slate-200/80 p-10 text-center text-slate-400 font-medium">
+                <div id="empty-items" class="rounded-lg border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
                     ยังไม่มีรายการสินค้า กดปุ่ม “+ เพิ่มรายการสินค้า” เพื่อเริ่มต้นบันทึก
                 </div>
             </div>
         </section>
+        </div>
 
         <div class="flex justify-end">
-            <button class="{{ $config['direction']==='in' ? 'btn-success shadow-lg shadow-emerald-500/25' : 'btn-primary shadow-lg shadow-blue-500/25' }}">
+            <button class="{{ $config['direction']==='in' ? 'btn-success' : 'btn-primary' }} px-6">
                 ✓ ยืนยัน{{ $config['title'] }}
             </button>
         </div>

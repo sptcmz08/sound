@@ -80,7 +80,7 @@ class ReportController extends Controller
 
     public function issues(Request $request)
     {
-        return $this->documentReport($request, ['PART_OUT', 'WIP_OUT', 'FG_OUT'], 'รายงานเบิก - จ่าย', 'รายการเบิกสินค้าออกจากสต็อก');
+        return $this->documentReport($request, ['PART_OUT', 'SUPPLY_OUT', 'WIP_OUT', 'FG_OUT'], 'รายงานเบิก - จ่าย', 'รายการเบิก PART, SUPPLY, WIP และ FG ออกจากสต็อก');
     }
 
     public function sales(Request $request)
@@ -90,7 +90,7 @@ class ReportController extends Controller
 
     public function claims(Request $request)
     {
-        return $this->documentReport($request, ['CLAIM_IN'], 'รายงานเคลมจากลูกค้า', 'PART, WIP และ FG ที่ลูกค้าส่งเคลม');
+        return $this->documentReport($request, ['CLAIM_IN'], 'รายงานเคลมจากลูกค้า', 'สินค้าที่ลูกค้าส่งเคลมกลับเข้าสต็อก');
     }
 
     public function waste(Request $request)

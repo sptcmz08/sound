@@ -6,7 +6,6 @@ use App\Enums\ProductType;
 use App\Http\Requests\ProductRequest;
 use App\Models\Product;
 use App\Models\Unit;
-use App\Models\Warehouse;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,8 +35,6 @@ class ProductController extends Controller
 
         return view('products.index', [
             'products' => $products,
-            'receiptProducts' => Product::with('unit')->where('is_active', true)->orderBy('product_type')->orderBy('code')->get(),
-            'warehouses' => Warehouse::where('is_active', true)->orderBy('code')->get(),
         ]);
     }
 
@@ -73,7 +70,7 @@ class ProductController extends Controller
             return $product;
         });
 
-        return redirect()->route('products.index')->with('success', "เพิ่ม {$product->name} แล้ว");
+        return redirect()->route('products.index', ['type' => $product->product_type->value])->with('success', "เพิ่ม {$product->name} แล้ว");
     }
 
     public function edit(Product $product)
@@ -106,7 +103,7 @@ class ProductController extends Controller
             $audit->record($request->user(), 'UPDATE', 'product', $product->id, $old, $product->fresh()->load(['components', 'optionGroups.items.optionProduct'])->toArray());
         });
 
-        return redirect()->route('products.index')->with('success', 'บันทึกสินค้าและสูตรแล้ว');
+        return redirect()->route('products.index', ['type' => $product->fresh()->product_type->value])->with('success', 'บันทึกสินค้าและสูตรแล้ว');
     }
 
     public function quickImage(Request $request, Product $product)

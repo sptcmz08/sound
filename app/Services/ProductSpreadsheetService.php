@@ -140,7 +140,7 @@ class ProductSpreadsheetService
         $sheet->setTitle('Stock Balances');
         $headers = ['รหัส', 'Barcode', 'ชื่อสินค้า', 'ประเภท', 'คลัง', 'ยอดคงเหลือ', 'หน่วย', 'จำนวนขั้นต่ำ', 'ตำแหน่ง', 'สถานะ'];
         $sheet->mergeCells('A1:J1')->setCellValue('A1', 'รายงานสต็อกคงเหลือ');
-        $sheet->mergeCells('A2:J2')->setCellValue('A2', 'Simple Stock • จัดทำเมื่อ '.now()->format('d/m/Y H:i').' น.');
+        $sheet->mergeCells('A2:J2')->setCellValue('A2', 'WIP Stock • จัดทำเมื่อ '.now()->format('d/m/Y H:i').' น.');
 
         $summary = [
             ['A4:C4', 'A5:C5', 'จำนวนรายการ', $balances->count(), 'DBEAFE', '1D4ED8'],
@@ -252,7 +252,7 @@ class ProductSpreadsheetService
         $sheet->getPageSetup()->setOrientation('landscape')->setFitToWidth(1)->setFitToHeight(0);
         $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(1, 7);
         $sheet->getPageMargins()->setTop(0.4)->setRight(0.35)->setBottom(0.4)->setLeft(0.35);
-        $sheet->getHeaderFooter()->setOddFooter('&LSimple Stock&Cหน้า &P / &N&R&D &T');
+        $sheet->getHeaderFooter()->setOddFooter('&LWIP Stock&Cหน้า &P / &N&R&D &T');
         $sheet->getPageSetup()->setPrintArea("A1:J{$lastRow}");
         $sheet->setSelectedCell('A1');
     }

@@ -83,7 +83,7 @@
     <main class="paper">
         <div class="top-accent"></div>
         <header class="header">
-            <div class="brand"><span class="brand-mark">S</span><span class="brand-copy"><span class="brand-name">Simple Stock</span><span class="brand-subtitle">INVENTORY CONTROL SYSTEM</span></span></div>
+            <div class="brand"><span class="brand-mark">W</span><span class="brand-copy"><span class="brand-name">WIP Stock</span><span class="brand-subtitle">INVENTORY MANAGEMENT</span></span></div>
             <div class="document-meta"><h1 class="document-title">ใบเบิกพัสดุ</h1><div class="document-number">เลขที่ {{ $requisition->request_no }}</div></div>
         </header>
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Dev Tools — Simple Stock</title>
+    <title>Dev Tools — WIP Stock</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { min-height: 100vh; background: #0f172a; color: #e2e8f0; font: 15px/1.5 'IBM Plex Sans Thai', system-ui, sans-serif; }
@@ -29,7 +29,7 @@
 <body>
     <div class="container">
         <h1>🛠 Dev Tools</h1>
-        <p class="subtitle">Simple Stock — Artisan Commands via Web</p>
+        <p class="subtitle">WIP Stock — Artisan Commands via Web</p>
 
         @if(session('result'))
         <div class="result-box">{{ session('result') }}</div>

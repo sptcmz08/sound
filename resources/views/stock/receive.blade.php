@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','รับสินค้าเข้าสต็อก') @section('header','รับสินค้าเข้าสต็อก')
+@section('title','รับสินค้าเข้า') @section('header','รับสินค้าเข้า')
 @section('content')
 <div class="mx-auto max-w-4xl"><div class="mb-7"><span class="badge-blue mb-3">ขั้นตอนที่ 1 · เลือกและคีย์จำนวน</span><h2 class="page-title">รับเข้าแบบคีย์ด้วยมือ</h2><p class="page-subtitle">ไม่มีการสแกน Barcode เลือกสินค้า เช่น “น็อต 1/4 นิ้ว” แล้วกรอกจำนวนได้เลย</p></div>
 <form method="post" action="{{route('stock.receive.store')}}" class="panel">@csrf

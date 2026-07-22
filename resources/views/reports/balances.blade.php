@@ -1,11 +1,20 @@
 @extends('layouts.app')
 @section('title','สต็อกคงเหลือ') @section('header','สต็อกคงเหลือ')
 @section('content')
-<div class="mb-7 flex flex-wrap items-end justify-between gap-4"><div><h2 class="page-title">สต็อกคงเหลือปัจจุบัน</h2><p class="page-subtitle">แสดงยอด PART, WIP และ FG แยกตามคลัง</p></div><div class="flex gap-2"><a class="btn-success" href="{{route('reports.export.excel',request()->query())}}">↓ ดาวน์โหลด Excel</a><a class="btn-secondary" href="{{route('reports.export',request()->query())}}">ดาวน์โหลด CSV</a></div></div>
-<form class="panel mb-5 grid gap-3 p-4 sm:grid-cols-[1fr_220px_auto]"><input class="input" name="q" value="{{request('q')}}" placeholder="ค้นหารหัสหรือชื่อสินค้า"><select name="type" class="select"><option value="">ทุกประเภท</option><option value="PART" @selected(request('type')==='PART')>PART</option><option value="WIP" @selected(request('type')==='WIP')>WIP</option><option value="FG" @selected(request('type')==='FG')>FG</option></select><button class="btn-primary">ค้นหา</button></form>
+<div class="page-head"><div><span class="page-kicker">รายงานสต็อก</span><h2 class="page-title">สต็อกคงเหลือปัจจุบัน</h2><p class="page-subtitle">แสดงยอด PART, SUPPLY, WIP และ FG แยกตามคลัง</p></div><div class="flex gap-2"><a class="btn-success" href="{{route('reports.export.excel',request()->query())}}">↓ ดาวน์โหลด Excel</a><a class="btn-secondary" href="{{route('reports.export',request()->query())}}">ดาวน์โหลด CSV</a></div></div>
+<form class="filter-bar grid gap-3 sm:grid-cols-[1fr_220px_auto]"><input class="input" name="q" value="{{request('q')}}" placeholder="ค้นหารหัสหรือชื่อสินค้า"><select name="type" class="select"><option value="">ทุกประเภท</option><option value="PART" @selected(request('type')==='PART')>PART</option><option value="SUPPLY" @selected(request('type')==='SUPPLY')>SUPPLY</option><option value="WIP" @selected(request('type')==='WIP')>WIP</option><option value="FG" @selected(request('type')==='FG')>FG</option></select><button class="btn-primary">ค้นหา</button></form>
 <div class="table-shell"><div class="table-wrap"><table class="data-table"><thead><tr><th>สินค้า</th><th>ประเภท</th><th>คลัง</th><th class="text-right">คงเหลือ</th><th class="text-right">ขั้นต่ำ</th><th>สถานะ</th></tr></thead><tbody>
-@forelse($balances as $balance) @php $status=(float)$balance->quantity===0.0?'หมดสต็อก':((float)$balance->quantity<=(float)$balance->product->minimum_stock?'ใกล้หมด':'ปกติ'); @endphp
-<tr><td><div class="flex items-center gap-3"><x-product-image :product="$balance->product" /><div><strong class="block text-slate-950">{{$balance->product->code}}</strong><span class="text-slate-500">{{$balance->product->name}}</span></div></div></td><td><span class="{{$balance->product->product_type->value==='PART'?'badge-blue':($balance->product->product_type->value==='WIP'?'badge-amber':'badge-green')}}">{{$balance->product->product_type->label()}}</span></td><td>{{$balance->warehouse->name}}</td><td class="text-right"><strong class="text-xl text-slate-950">{{\App\Support\Quantity::format($balance->quantity)}}</strong> {{$balance->product->unit->name}}</td><td class="text-right">{{\App\Support\Quantity::format($balance->product->minimum_stock)}}</td><td><span class="{{$status==='ปกติ'?'badge-green':($status==='ใกล้หมด'?'badge-amber':'badge-red')}}">{{$status}}</span></td></tr>
+@forelse($balances as $balance)
+@php
+    $status = (float) $balance->quantity === 0.0 ? 'หมดสต็อก' : ((float) $balance->quantity <= (float) $balance->product->minimum_stock ? 'ใกล้หมด' : 'ปกติ');
+    $typeBadge = match ($balance->product->product_type->value) {
+        'PART' => 'badge-part',
+        'SUPPLY' => 'badge-supply',
+        'WIP' => 'badge-wip',
+        default => 'badge-fg',
+    };
+@endphp
+<tr><td><div class="flex items-center gap-3"><x-product-image :product="$balance->product" /><div><strong class="block text-slate-950">{{$balance->product->code}}</strong><span class="text-slate-500">{{$balance->product->name}}</span></div></div></td><td><span class="{{$typeBadge}}">{{$balance->product->product_type->label()}}</span></td><td>{{$balance->warehouse->name}}</td><td class="text-right"><strong class="text-base text-slate-950">{{\App\Support\Quantity::format($balance->quantity)}}</strong> {{$balance->product->unit->name}}</td><td class="text-right">{{\App\Support\Quantity::format($balance->product->minimum_stock)}}</td><td><span class="{{$status==='ปกติ'?'badge-green':($status==='ใกล้หมด'?'badge-amber':'badge-red')}}">{{$status}}</span></td></tr>
 @empty <tr><td colspan="6" class="empty-state">ยังไม่มียอดคงเหลือ — เริ่มจากเมนู “รับสินค้าเข้า”</td></tr> @endforelse
 </tbody></table></div><div class="border-t border-slate-100 px-5 py-4">{{$balances->links()}}</div></div>
 @endsection
