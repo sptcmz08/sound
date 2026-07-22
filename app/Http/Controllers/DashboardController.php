@@ -13,6 +13,7 @@ class DashboardController extends Controller
     {
         return view('dashboard', [
             'partCount' => Product::where('product_type', 'PART')->where('is_active', true)->count(),
+            'supplyCount' => Product::where('product_type', 'SUPPLY')->where('is_active', true)->count(),
             'wipCount' => Product::where('product_type', 'WIP')->where('is_active', true)->count(),
             'fgCount' => Product::where('product_type', 'FG')->where('is_active', true)->count(),
             'pendingCount' => Requisition::where('status', RequisitionStatus::PENDING)->count(),

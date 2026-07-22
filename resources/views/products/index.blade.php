@@ -1,96 +1,222 @@
 @extends('layouts.app')
-@section('title','สินค้าและรับเข้าสต็อก') @section('header','สินค้าและรับเข้าสต็อก')
+
+@section('title', 'แคตตาล็อกสินค้า & การรับเข้าสต็อก')
+@section('header', 'แคตตาล็อกสินค้า (Product Catalog)')
+
 @section('content')
-<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-    <div>
-        <span class="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700 ring-1 ring-blue-200">คลังสินค้า</span>
-        <h2 class="page-title">รายการสินค้า</h2>
-        <p class="page-subtitle">แยกจัดการข้อมูล PART, WIP และ FG พร้อมสูตรการผลิตอย่างชัดเจน</p>
+<div class="space-y-6">
+    {{-- Header Title Bar --}}
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="badge-blue">Inventory Master</span>
+                <span class="text-xs text-slate-400 font-semibold">• พบ {{ $products->total() }} รายการ</span>
+            </div>
+            <h2 class="page-title">รายการสินค้าทั้งหมด</h2>
+            <p class="page-subtitle">บริหารจัดการ PART (อะไหล่), SUPPLY (วัสดุสิ้นเปลือง), WIP (งานประกอบ) และ FG (สินค้าสำเร็จรูป)</p>
+        </div>
+        @if(auth()->user()->isAdmin())
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('operations.create', 'supplier-receive') }}" class="btn-success shadow-lg shadow-emerald-500/20">
+                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                รับสินค้าเข้า (Supplier)
+            </a>
+            <a href="{{ route('products.create') }}" class="btn-primary shadow-lg shadow-blue-500/20">
+                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                + เพิ่มสินค้าใหม่ / สูตร BOM
+            </a>
+        </div>
+        @endif
     </div>
+
+    {{-- Product Type Tabs --}}
+    <div class="grid grid-cols-2 gap-2 rounded-3xl bg-slate-200/60 p-1.5 sm:grid-cols-4">
+        <a href="{{ route('products.index', ['type' => 'PART']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type', 'PART') === 'PART' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+            <span class="size-2 rounded-full bg-blue-500"></span>
+            PART (อะไหล่ผลิต)
+        </a>
+        <a href="{{ route('products.index', ['type' => 'SUPPLY']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type') === 'SUPPLY' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+            <span class="size-2 rounded-full bg-slate-500"></span>
+            SUPPLY (วัสดุสิ้นเปลือง)
+        </a>
+        <a href="{{ route('products.index', ['type' => 'WIP']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type') === 'WIP' ? 'bg-white text-violet-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+            <span class="size-2 rounded-full bg-violet-500"></span>
+            WIP (งานประกอบ)
+        </a>
+        <a href="{{ route('products.index', ['type' => 'FG']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type') === 'FG' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+            <span class="size-2 rounded-full bg-emerald-500"></span>
+            FG (สินค้าสำเร็จรูป)
+        </a>
+    </div>
+
+    {{-- Search & Filter Bar --}}
+    <form class="panel flex flex-wrap items-center gap-3 p-4">
+        <div class="relative min-w-64 flex-1">
+            <svg class="pointer-events-none absolute left-4 top-3.5 size-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
+            <input class="input pl-11" name="q" value="{{ request('q') }}" placeholder="พิมพ์ค้นหารหัส SKU หรือชื่อสินค้า...">
+        </div>
+        <select class="select w-full sm:w-56" name="type">
+            <option value="PART" @selected(request('type','PART')==='PART')>PART (อะไหล่ผลิต)</option>
+            <option value="SUPPLY" @selected(request('type')==='SUPPLY')>SUPPLY (วัสดุสิ้นเปลือง)</option>
+            <option value="WIP" @selected(request('type')==='WIP')>WIP (งานประกอบ)</option>
+            <option value="FG" @selected(request('type')==='FG')>FG (สินค้าสำเร็จรูป)</option>
+        </select>
+        <button class="btn-secondary">ค้นหา</button>
+    </form>
+
+    {{-- Products Table --}}
+    <div class="table-shell">
+        <div class="panel-header flex items-center justify-between gap-3">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">รายการสินค้า</h3>
+                <p class="text-xs text-slate-500">แสดงผลยอดคงเหลือรวมทุกคลังสินค้า</p>
+            </div>
+            <span class="badge-slate">Real-time Balance</span>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>สินค้า (SKU / Code)</th>
+                        <th>ประเภท</th>
+                        <th class="text-right">คงเหลือรวม</th>
+                        <th>หน่วยนับ</th>
+                        <th>สูตร BOM</th>
+                        <th>สถานะ</th>
+                        <th class="text-right">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse($products as $p)
+                    <tr>
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <x-product-image :product="$p" />
+                                <div>
+                                    <strong class="block text-slate-900 font-bold hover:text-blue-600 transition-colors">{{ $p->name }}</strong>
+                                    <span class="font-mono text-xs font-semibold text-slate-400">{{ $p->code }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="{{ $p->product_type->value==='PART' ? 'badge-part' : ($p->product_type->value==='SUPPLY' ? 'badge-supply' : ($p->product_type->value==='WIP' ? 'badge-wip' : 'badge-fg')) }}">
+                                {{ $p->product_type->label() }}
+                            </span>
+                        </td>
+                        <td class="text-right">
+                            <strong class="text-lg font-black text-slate-900">
+                                {{ \App\Support\Quantity::format($p->balances_sum_quantity ?? 0) }}
+                            </strong>
+                        </td>
+                        <td class="font-medium text-slate-600">{{ $p->unit->name }}</td>
+                        <td>
+                            @if(in_array($p->product_type->value, ['PART', 'SUPPLY'], true))
+                                <span class="text-slate-300">—</span>
+                            @else
+                                <span class="badge-slate">{{ $p->components_count }} รายการส่วนประกอบ</span>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="{{ $p->is_active ? 'badge-green' : 'badge-slate' }}">
+                                {{ $p->is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}
+                            </span>
+                        </td>
+                        <td class="text-right">
+                            @if(auth()->user()->isAdmin())
+                            <div class="flex justify-end items-center gap-2">
+                                @if($p->is_active && in_array($p->product_type->value, ['PART', 'SUPPLY'], true))
+                                <button type="button" class="btn-success px-3 py-1.5 text-xs font-bold shadow-sm" data-open-receive data-product="{{ $p->id }}" data-product-name="{{ $p->code }} — {{ $p->name }}" data-unit="{{ $p->unit->name }}">
+                                    + รับเข้า
+                                </button>
+                                @endif
+                                <a class="btn-secondary px-3 py-1.5 text-xs font-bold" href="{{ route('products.edit', $p) }}">แก้ไข</a>
+                                <form method="post" action="{{ route('products.destroy', $p) }}" onsubmit="return confirm('ยืนยันลบหรือปิดใช้งานสินค้า?')">
+                                    @csrf @method('DELETE')
+                                    <button class="btn-ghost px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50">ลบ</button>
+                                </form>
+                            </div>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <strong class="block text-slate-700">ไม่พบรายการสินค้า</strong>
+                            <span class="text-xs text-slate-400">ยังไม่มีสินค้าประเภทนี้ หรือลองค้นหาด้วยคำอื่น</span>
+                        </td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mt-4">{{ $products->links() }}</div>
+
+    {{-- Receive Stock Quick Modal --}}
     @if(auth()->user()->isAdmin())
-    <div class="flex flex-wrap gap-3">
-        <a href="{{route('operations.create','supplier-receive')}}" class="btn-success">
-            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
-            รับเข้า (Supplier)
-        </a>
-        <a href="{{route('products.create')}}" class="btn-primary">
-            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
-            เพิ่มสินค้า / สูตร
-        </a>
-    </div>
+    <dialog id="receive-dialog" class="modal-dialog w-full max-w-2xl p-0">
+        <form method="post" action="{{ route('stock.receive.store') }}" class="overflow-hidden rounded-3xl bg-white shadow-2xl">
+            @csrf
+            <div class="flex items-start justify-between border-b border-slate-100 bg-slate-50/80 px-8 py-6">
+                <div class="flex items-center gap-4">
+                    <div class="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25">
+                        <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">รับสินค้าเข้าสต็อก (Supplier)</h3>
+                        <p class="mt-0.5 text-xs text-slate-500">เลือกสินค้า คลังสินค้าปลายทาง และกรอกจำนวนที่รับจริง</p>
+                    </div>
+                </div>
+                <button type="button" class="rounded-2xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors" data-close-modal aria-label="ปิด">✕</button>
+            </div>
+            <div class="grid gap-5 p-8 sm:grid-cols-2">
+                <label class="sm:col-span-2">
+                    <span class="label">สินค้าที่ต้องการรับเข้า *</span>
+                    <select id="receive-product" class="select" name="product_id" required>
+                        <option value="">— เลือกสินค้า —</option>
+                        @foreach($receiptProducts as $p)
+                        <option value="{{ $p->id }}" data-unit="{{ $p->unit->name }}" data-image="{{ $p->image_path ? route('products.image', $p) : '' }}">
+                            {{ $p->code }} — {{ $p->name }} ({{ $p->product_type->label() }})
+                        </option>
+                        @endforeach
+                    </select>
+                </label>
+                <div id="receive-product-preview" class="hidden sm:col-span-2 items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <img class="size-16 rounded-2xl border border-slate-200 bg-white object-cover shadow-sm" alt="รูปสินค้าที่เลือก">
+                    <div>
+                        <strong class="block text-sm text-slate-900">รูปภาพสินค้า</strong>
+                        <span class="text-xs text-slate-500">ตรวจสอบรายละเอียดสินค้าก่อนบันทึกรับเข้าคลัง</span>
+                    </div>
+                </div>
+                <label>
+                    <span class="label">คลังสินค้าปลายทาง *</span>
+                    <select class="select" name="warehouse_id" required>
+                        <option value="">— เลือกคลัง —</option>
+                        @foreach($warehouses as $warehouse)
+                        <option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    <span class="label">จำนวนที่รับเข้าจริง *</span>
+                    <div class="relative">
+                        <input class="input pr-20" type="number" name="quantity" min="0.0001" step="0.0001" placeholder="เช่น 100" required>
+                        <span id="receive-unit" class="absolute right-4 top-3.5 font-bold text-slate-400 text-xs uppercase">หน่วย</span>
+                    </div>
+                </label>
+                <label class="sm:col-span-2">
+                    <span class="label">หมายเหตุ / เลขที่ใบส่งสินค้า</span>
+                    <textarea class="input" name="note" rows="3" placeholder="ระบุเลขที่ใบส่งของ หรือรายละเอียดการรับเข้า..."></textarea>
+                </label>
+            </div>
+            <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50/80 px-8 py-5">
+                <button type="button" class="btn-secondary" data-close-modal>ยกเลิก</button>
+                <button class="btn-success shadow-lg shadow-emerald-500/25">✓ ยืนยันรับเข้าสต็อก</button>
+            </div>
+        </form>
+    </dialog>
     @endif
 </div>
-
-<div class="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-2 sm:grid-cols-4">
-    @foreach(['PART'=>'PART (อะไหล่ผลิต)','SUPPLY'=>'SUPPLY (วัสดุสิ้นเปลือง)','WIP'=>'WIP (งานประกอบ)','FG'=>'FG (สินค้าสำเร็จรูป)'] as $value=>$label)
-    <a href="{{route('products.index',['type'=>$value])}}" class="rounded-xl px-4 py-3 text-center text-sm font-bold transition {{request('type','PART')===$value?'bg-white text-blue-700 shadow-sm':'text-slate-500 hover:text-slate-800'}}">{{$label}}</a>
-    @endforeach
-</div>
-<form class="panel mb-5 flex flex-wrap gap-3 p-4">
-    <div class="relative min-w-64 flex-1">
-        <svg class="pointer-events-none absolute left-4 top-3.5 size-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
-        <input class="input pl-11" name="q" value="{{request('q')}}" placeholder="ค้นหารหัสหรือชื่อสินค้า">
-    </div>
-    <select class="select w-full sm:w-56" name="type"><option value="PART" @selected(request('type','PART')==='PART')>PART</option><option value="SUPPLY" @selected(request('type')==='SUPPLY')>SUPPLY</option><option value="WIP" @selected(request('type')==='WIP')>WIP</option><option value="FG" @selected(request('type')==='FG')>FG</option></select>
-    <button class="btn-secondary">ค้นหา</button>
-</form>
-
-<div class="table-shell">
-    <div class="panel-header flex items-center justify-between gap-3">
-        <div><h3 class="text-xl font-bold text-slate-950">สินค้าทั้งหมด</h3><p class="text-sm text-slate-500">พบ {{$products->total()}} รายการ</p></div>
-        <span class="badge-slate">อัปเดตยอดแบบ Real-time</span>
-    </div>
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead><tr><th>สินค้า</th><th>ประเภท</th><th class="text-right">คงเหลือ</th><th>หน่วย</th><th>สูตร</th><th>สถานะ</th><th class="text-right">จัดการ</th></tr></thead>
-            <tbody>
-            @forelse($products as $p)
-                <tr>
-                    <td><div class="flex items-center gap-3"><x-product-image :product="$p" /><div><strong class="block text-slate-950">{{$p->name}}</strong><span class="font-mono text-sm text-slate-500">{{$p->code}}</span></div></div></td>
-                    <td><span class="{{$p->product_type->value==='PART'?'badge-blue':($p->product_type->value==='SUPPLY'?'badge-slate':($p->product_type->value==='WIP'?'badge-amber':'badge-green'))}}">{{$p->product_type->label()}}</span></td>
-                    <td class="text-right"><strong class="text-xl text-slate-950">{{\App\Support\Quantity::format($p->balances_sum_quantity ?? 0)}}</strong></td>
-                    <td>{{$p->unit->name}}</td>
-                    <td>{{in_array($p->product_type->value, ['PART', 'SUPPLY'], true) ? '—' : $p->components_count.' รายการ'}}</td>
-                    <td><span class="{{$p->is_active?'badge-green':'badge-slate'}}">{{$p->is_active?'ใช้งาน':'ปิดใช้งาน'}}</span></td>
-                    <td class="text-right">
-                        @if(auth()->user()->isAdmin())
-                        <div class="flex justify-end gap-2">
-                            @if($p->is_active && in_array($p->product_type->value, ['PART', 'SUPPLY'], true))
-                            <button type="button" class="btn-success px-3 py-2 text-sm" data-open-receive data-product="{{$p->id}}" data-product-name="{{$p->code}} — {{$p->name}}" data-unit="{{$p->unit->name}}">+ รับเข้า</button>
-                            @endif
-                            <a class="btn-secondary px-3 py-2 text-sm" href="{{route('products.edit',$p)}}">แก้ไข</a>
-                            <form method="post" action="{{route('products.destroy',$p)}}" onsubmit="return confirm('ยืนยันลบหรือปิดใช้งาน?')">@csrf @method('DELETE')<button class="btn-ghost px-3 py-2 text-sm text-rose-600">ลบ</button></form>
-                        </div>
-                        @endif
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="7" class="empty-state">ยังไม่มีสินค้า</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
-<div class="mt-5">{{$products->links()}}</div>
-
-@if(auth()->user()->isAdmin())
-<dialog id="receive-dialog" class="modal-dialog w-full max-w-2xl p-0">
-    <form method="post" action="{{route('stock.receive.store')}}" class="overflow-hidden rounded-2xl bg-white">@csrf
-        <div class="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-            <div><div class="mb-2 grid size-11 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20"><svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg></div><h3 class="text-2xl font-bold text-slate-950">รับสินค้าเข้าสต็อก</h3><p class="mt-1 text-slate-500">เลือกสินค้า คลัง และกรอกจำนวนที่รับจริง</p></div>
-            <button type="button" class="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" data-close-modal aria-label="ปิด">✕</button>
-        </div>
-        <div class="grid gap-5 p-6 sm:grid-cols-2">
-            <label class="sm:col-span-2"><span class="label">สินค้า *</span><select id="receive-product" class="select" name="product_id" required><option value="">— เลือกสินค้า —</option>@foreach($receiptProducts as $p)<option value="{{$p->id}}" data-unit="{{$p->unit->name}}" data-image="{{$p->image_path ? route('products.image',$p) : ''}}">{{$p->code}} — {{$p->name}}</option>@endforeach</select></label>
-            <div id="receive-product-preview" class="hidden sm:col-span-2 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><img class="size-16 rounded-xl border border-slate-200 bg-white object-cover" alt="รูปสินค้าที่เลือก"><div><strong class="block text-slate-900">รูปสินค้าที่เลือก</strong><span class="text-sm text-slate-500">ตรวจสอบรูปก่อนยืนยันรับเข้า</span></div></div>
-            <label><span class="label">คลังสินค้า *</span><select class="select" name="warehouse_id" required><option value="">— เลือกคลัง —</option>@foreach($warehouses as $warehouse)<option value="{{$warehouse->id}}">{{$warehouse->code}} — {{$warehouse->name}}</option>@endforeach</select></label>
-            <label><span class="label">จำนวนที่รับ *</span><div class="relative"><input class="input pr-20" type="number" name="quantity" min="0.0001" step="0.0001" placeholder="เช่น 100" required><span id="receive-unit" class="absolute right-4 top-3.5 font-semibold text-slate-500">หน่วย</span></div></label>
-            <label class="sm:col-span-2"><span class="label">หมายเหตุ</span><textarea class="input" name="note" rows="3" placeholder="เลขที่ใบส่งของ หรือรายละเอียดเพิ่มเติม"></textarea></label>
-        </div>
-        <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4"><button type="button" class="btn-secondary" data-close-modal>ยกเลิก</button><button class="btn-success">✓ ยืนยันรับเข้าสต็อก</button></div>
-    </form>
-</dialog>
-@endif
 @endsection
 
 @push('scripts')

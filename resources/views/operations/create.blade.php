@@ -2,50 +2,121 @@
 @section('title', $config['title'])
 @section('header', $config['title'])
 @section('content')
-<div class="mb-7 flex flex-wrap items-end justify-between gap-4">
-    <div>
-        <span class="mb-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700 ring-1 ring-blue-200">งานสต็อก</span>
-        <h2 class="page-title">{{$config['title']}}</h2>
-        <p class="page-subtitle">{{$config['subtitle']}}</p>
-    </div>
-    <div class="flex gap-2">
-        @if($operation === 'claim')<a href="{{route('operations.create','waste')}}" class="btn-danger">บันทึกของเสีย</a>@endif
-        <a href="{{route('dashboard')}}" class="btn-secondary">กลับหน้าหลัก</a>
-    </div>
-</div>
-
-<form id="operation-form" method="post" action="{{route('operations.store', $operation)}}" class="space-y-6">
-    @csrf
-    <input type="hidden" name="idempotency_key" value="{{$idempotencyKey}}">
-    <section class="panel">
-        <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">ข้อมูลเอกสาร</h3><p class="text-sm text-slate-500">ระบุวันที่ คลัง และข้อมูลอ้างอิง</p></div><span class="{{$config['direction']==='in'?'badge-green':'badge-amber'}}">{{$config['direction']==='in'?'เข้า':'ออก'}}สต็อก</span></div>
-        <div class="panel-body grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            <label><span class="label">วันที่ *</span><input class="input" type="date" name="document_date" value="{{old('document_date', today()->format('Y-m-d'))}}" required></label>
-            <label><span class="label">คลัง *</span><select class="select" name="warehouse_id" id="warehouse" required><option value="">— เลือกคลัง —</option>@foreach($warehouses as $warehouse)<option value="{{$warehouse->id}}" @selected(old('warehouse_id')==$warehouse->id)>{{$warehouse->code}} — {{$warehouse->name}}</option>@endforeach</select></label>
-            <label><span class="label">{{$config['party_label']}} {{$config['party_required']?'*':''}}</span><input class="input" name="contact_name" value="{{old('contact_name')}}" {{$config['party_required']?'required':''}} placeholder="ชื่อ{{$config['party_label']}}"></label>
-            <label><span class="label">เลขอ้างอิง</span><input class="input" name="reference_no" value="{{old('reference_no')}}" placeholder="PO / Invoice / เลขเคลม"></label>
-            <label class="md:col-span-2 xl:col-span-4"><span class="label">รายละเอียด {{$config['note_required']?'*':''}}</span><textarea class="input" name="note" rows="3" {{$config['note_required']?'required':''}} placeholder="ระบุรายละเอียดที่ใช้ตรวจสอบย้อนหลัง">{{old('note')}}</textarea></label>
-        </div>
-    </section>
-
-    <section class="panel">
-        <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">รายการสินค้า</h3><p class="text-sm text-slate-500">เลือกสินค้าและกรอกจำนวนจริง</p></div><button type="button" id="add-item" class="btn-primary">+ เพิ่มรายการ</button></div>
-        <div class="panel-body">
-            <div class="table-wrap rounded-xl border border-slate-200">
-                <table class="data-table">
-                    <thead><tr><th class="min-w-[320px]">สินค้า</th><th>ประเภท</th><th class="text-right">คงเหลือ</th><th class="min-w-40">จำนวน</th>@if($config['cost_input'])<th class="min-w-40">ต้นทุน/หน่วย</th>@endif @if($config['price_input'])<th class="min-w-40">ราคาขาย/หน่วย</th><th class="text-right">รวม</th>@endif<th></th></tr></thead>
-                    <tbody id="item-rows"></tbody>
-                </table>
+<div class="space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="{{ $config['direction']==='in' ? 'badge-green' : 'badge-amber' }}">
+                    {{ $config['direction']==='in' ? '↑ รับเข้าสต็อก' : '↓ จ่ายออกจากสต็อก' }}
+                </span>
+                <span class="text-xs text-slate-400 font-semibold">• บันทึกประวัติและปรับปรุงยอดคงเหลือทันที</span>
             </div>
-            <div id="empty-items" class="rounded-b-xl border-x border-b border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีรายการ กด “เพิ่มรายการ” เพื่อเริ่มต้น</div>
+            <h2 class="page-title">{{ $config['title'] }}</h2>
+            <p class="page-subtitle">{{ $config['subtitle'] }}</p>
         </div>
-    </section>
-
-    <div class="sticky bottom-4 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
-        <p class="text-sm text-slate-500">ระบบตรวจยอดคงเหลือและป้องกันสต็อกติดลบอัตโนมัติ</p>
-        <button class="{{$config['direction']==='in'?'btn-success':'btn-primary'}}">ยืนยัน{{$config['title']}}</button>
+        <div class="flex gap-2">
+            @if($operation === 'claim')
+                <a href="{{ route('operations.create', 'waste') }}" class="btn-danger shadow-md shadow-rose-500/20">บันทึกของเสีย</a>
+            @endif
+            <a href="{{ route('dashboard') }}" class="btn-secondary">กลับหน้าหลัก</a>
+        </div>
     </div>
-</form>
+
+    <form id="operation-form" method="post" action="{{ route('operations.store', $operation) }}" class="space-y-6">
+        @csrf
+        <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">
+        
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">ข้อมูลเอกสารการ{{ $config['title'] }}</h3>
+                    <p class="text-xs text-slate-500">ระบุวันที่ คลังสินค้า และผู้ติดต่ออ้างอิง</p>
+                </div>
+                <span class="{{ $config['direction']==='in' ? 'badge-green' : 'badge-amber' }}">
+                    {{ $config['direction']==='in' ? 'STOCK IN' : 'STOCK OUT' }}
+                </span>
+            </div>
+            <div class="panel-body grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                <label>
+                    <span class="label">วันที่ทำรายการ *</span>
+                    <input class="input" type="date" name="document_date" value="{{ old('document_date', today()->format('Y-m-d')) }}" required>
+                </label>
+                <label>
+                    <span class="label">คลังสินค้าทำรายการ *</span>
+                    <select class="select" name="warehouse_id" id="warehouse" required>
+                        <option value="">— เลือกคลัง —</option>
+                        @foreach($warehouses as $warehouse)
+                        <option value="{{ $warehouse->id }}" @selected(old('warehouse_id')==$warehouse->id)>
+                            {{ $warehouse->code }} — {{ $warehouse->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    <span class="label">{{ $config['party_label'] }} {{ $config['party_required'] ? '*' : '' }}</span>
+                    <input class="input" name="contact_name" value="{{ old('contact_name') }}" {{ $config['party_required'] ? 'required' : '' }} placeholder="ระบุชื่อ{{ $config['party_label'] }}">
+                </label>
+                <label>
+                    <span class="label">เลขที่เอกสารอ้างอิง</span>
+                    <input class="input" name="reference_no" value="{{ old('reference_no') }}" placeholder="เช่น PO-001 / INV-1234">
+                </label>
+                <label class="md:col-span-2 xl:col-span-4">
+                    <span class="label">หมายเหตุ {{ $config['note_required'] ? '*' : '' }}</span>
+                    <textarea class="input" name="note" rows="2" {{ $config['note_required'] ? 'required' : '' }} placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับการตรวจสอบย้อนหลัง...">{{ old('note') }}</textarea>
+                </label>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">รายการสินค้า</h3>
+                    <p class="text-xs text-slate-500">เลือกสินค้าและ Option เสริม (ระบบจะตัดสต็อก WIP/PART ของ Option อัตโนมัติ)</p>
+                </div>
+                <button type="button" id="add-item" class="btn-primary shadow-lg shadow-blue-500/20">
+                    + เพิ่มรายการสินค้า
+                </button>
+            </div>
+            <div class="panel-body">
+                <div class="table-wrap rounded-2xl border border-slate-200/80 bg-white">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="min-w-[340px]">สินค้า & ตัวเลือกเสริม (Option)</th>
+                                <th>ประเภท</th>
+                                <th class="text-right">คงเหลือในคลัง</th>
+                                <th class="min-w-36">จำนวน</th>
+                                @if($config['cost_input'])<th class="min-w-40">ต้นทุน/หน่วย (฿)</th>@endif
+                                @if($config['price_input'])<th class="min-w-40">ราคาขาย/หน่วย (฿)</th><th class="text-right">รวมเป็นเงิน (฿)</th>@endif
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="item-rows"></tbody>
+                    </table>
+                </div>
+                <div id="empty-items" class="rounded-2xl border-2 border-dashed border-slate-200/80 p-10 text-center text-slate-400 font-medium">
+                    ยังไม่มีรายการสินค้า กดปุ่ม “+ เพิ่มรายการสินค้า” เพื่อเริ่มต้นบันทึก
+                </div>
+            </div>
+        </section>
+
+        {{-- Floating Sticky Footer --}}
+        <div class="sticky bottom-6 z-20 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200/90 bg-white/95 p-5 shadow-2xl backdrop-blur-md">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div>
+                    <strong class="block text-xs uppercase tracking-wider text-slate-600">ระบบตรวจสอบอัตโนมัติ</strong>
+                    <span class="text-xs text-slate-500">ตรวจสอบคงเหลือและป้องกันสต็อกติดลบทันทีที่บันทึก</span>
+                </div>
+            </div>
+            <button class="{{ $config['direction']==='in' ? 'btn-success shadow-lg shadow-emerald-500/25' : 'btn-primary shadow-lg shadow-blue-500/25' }}">
+                ✓ ยืนยัน{{ $config['title'] }}
+            </button>
+        </div>
+    </form>
+</div>
 @endsection
 
 @push('scripts')
