@@ -20,57 +20,65 @@ use Illuminate\Support\Facades\Route;
 // Dev-Tools: /dev-tools?key=sound2026!
 // ──────────────────────────────────────────────
 if (app()->environment('local')) {
-Route::prefix('dev-tools')->group(function () {
-    $guard = function (Request $request) {
-        if ($request->query('key') !== 'sound2026!') {
-            abort(403, 'Invalid key');
-        }
-    };
+    Route::prefix('dev-tools')->group(function () {
+        $guard = function (Request $request) {
+            if ($request->query('key') !== 'sound2026!') {
+                abort(403, 'Invalid key');
+            }
+        };
 
-    Route::get('/', function (Request $request) use ($guard) {
-        $guard($request);
-        return view('dev-tools', ['key' => $request->query('key')]);
-    });
+        Route::get('/', function (Request $request) use ($guard) {
+            $guard($request);
 
-    Route::post('/migrate', function (Request $request) use ($guard) {
-        $guard($request);
-        Artisan::call('migrate', ['--force' => true]);
-        return back()->with('result', '✅ migrate --force' . "\n" . Artisan::output());
-    });
+            return view('dev-tools', ['key' => $request->query('key')]);
+        });
 
-    Route::post('/optimize', function (Request $request) use ($guard) {
-        $guard($request);
-        Artisan::call('optimize:clear');
-        $out1 = Artisan::output();
-        Artisan::call('optimize');
-        $out2 = Artisan::output();
-        return back()->with('result', '✅ optimize:clear + optimize' . "\n" . $out1 . $out2);
-    });
+        Route::post('/migrate', function (Request $request) use ($guard) {
+            $guard($request);
+            Artisan::call('migrate', ['--force' => true]);
 
-    Route::post('/seed', function (Request $request) use ($guard) {
-        $guard($request);
-        Artisan::call('db:seed', ['--force' => true]);
-        return back()->with('result', '✅ db:seed --force' . "\n" . Artisan::output());
-    });
+            return back()->with('result', '✅ migrate --force'."\n".Artisan::output());
+        });
 
-    Route::post('/migrate-fresh', function (Request $request) use ($guard) {
-        $guard($request);
-        Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
-        return back()->with('result', '⚠️ migrate:fresh --seed' . "\n" . Artisan::output());
-    });
+        Route::post('/optimize', function (Request $request) use ($guard) {
+            $guard($request);
+            Artisan::call('optimize:clear');
+            $out1 = Artisan::output();
+            Artisan::call('optimize');
+            $out2 = Artisan::output();
 
-    Route::post('/custom', function (Request $request) use ($guard) {
-        $guard($request);
-        $cmd = $request->input('command');
-        if (!$cmd) return back()->with('result', '❌ ไม่ได้ระบุคำสั่ง');
-        try {
-            Artisan::call($cmd);
-            return back()->with('result', "✅ $cmd\n" . Artisan::output());
-        } catch (\Throwable $e) {
-            return back()->with('result', "❌ $cmd\n" . $e->getMessage());
-        }
+            return back()->with('result', '✅ optimize:clear + optimize'."\n".$out1.$out2);
+        });
+
+        Route::post('/seed', function (Request $request) use ($guard) {
+            $guard($request);
+            Artisan::call('db:seed', ['--force' => true]);
+
+            return back()->with('result', '✅ db:seed --force'."\n".Artisan::output());
+        });
+
+        Route::post('/migrate-fresh', function (Request $request) use ($guard) {
+            $guard($request);
+            Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
+
+            return back()->with('result', '⚠️ migrate:fresh --seed'."\n".Artisan::output());
+        });
+
+        Route::post('/custom', function (Request $request) use ($guard) {
+            $guard($request);
+            $cmd = $request->input('command');
+            if (! $cmd) {
+                return back()->with('result', '❌ ไม่ได้ระบุคำสั่ง');
+            }
+            try {
+                Artisan::call($cmd);
+
+                return back()->with('result', "✅ $cmd\n".Artisan::output());
+            } catch (Throwable $e) {
+                return back()->with('result', "❌ $cmd\n".$e->getMessage());
+            }
+        });
     });
-});
 }
 
 Route::middleware('guest')->group(function () {

@@ -85,8 +85,8 @@ class ProductSpreadsheetService
                     $this->fail($line, "รหัสสินค้า {$code} ซ้ำในไฟล์");
                 }
                 $seenCodes[$code] = true;
-                if (! in_array($type, ['PART', 'FG'], true)) {
-                    $this->fail($line, 'product_type ต้องเป็น PART หรือ FG');
+                if (! in_array($type, ['PART', 'SUPPLY', 'WIP', 'FG'], true)) {
+                    $this->fail($line, 'product_type ต้องเป็น PART, SUPPLY, WIP หรือ FG');
                 }
                 $unit = Unit::whereRaw('UPPER(code) = ?', [$unitCode])->where('is_active', true)->first();
                 if (! $unit) {
@@ -273,7 +273,7 @@ class ProductSpreadsheetService
         $sheet->fromArray(['PART-100', 'สินค้าตัวอย่าง', 'PART', 'PCS', '885000000001', 5, 'A-01', 'ลบแถวตัวอย่างก่อนใช้งาน'], null, 'A2');
         $this->formatSheet($sheet, 2, count(self::HEADERS));
         $validation = new DataValidation;
-        $validation->setType(DataValidation::TYPE_LIST)->setErrorStyle(DataValidation::STYLE_STOP)->setAllowBlank(false)->setShowErrorMessage(true)->setErrorTitle('ประเภทไม่ถูกต้อง')->setError('เลือก PART หรือ FG')->setFormula1('"PART,FG"');
+        $validation->setType(DataValidation::TYPE_LIST)->setErrorStyle(DataValidation::STYLE_STOP)->setAllowBlank(false)->setShowErrorMessage(true)->setErrorTitle('ประเภทไม่ถูกต้อง')->setError('เลือก PART, SUPPLY, WIP หรือ FG')->setFormula1('"PART,SUPPLY,WIP,FG"');
         for ($row = 2; $row <= 5001; $row++) {
             $sheet->getCell("C{$row}")->setDataValidation(clone $validation);
         }
@@ -282,7 +282,7 @@ class ProductSpreadsheetService
         $guide->fromArray([
             ['คู่มือนำเข้าสินค้า'],
             ['1. ห้ามเปลี่ยนชื่อหัวตารางแถวที่ 1'],
-            ['2. product_type ใช้ PART หรือ FG เท่านั้น'],
+            ['2. product_type ใช้ PART, SUPPLY, WIP หรือ FG'],
             ['3. unit_code ต้องมีอยู่ในหน้าตั้งค่าของระบบ'],
             ['4. code และ barcode ห้ามซ้ำ'],
             ['5. รองรับสูงสุด 5,000 รายการต่อไฟล์'],

@@ -138,10 +138,13 @@ class StockSystemTest extends TestCase
 
     public function test_csv_import_and_export_work(): void
     {
-        $csv = "code,name,product_type,unit_code,barcode,minimum_stock,location_text\nP-CSV,Imported,PART,PCS,999,3,A1\n";
+        $csv = "code,name,product_type,unit_code,barcode,minimum_stock,location_text\nP-CSV,Imported PART,PART,PCS,999,3,A1\nS-CSV,Imported SUPPLY,SUPPLY,PCS,,2,A2\nW-CSV,Imported WIP,WIP,PCS,,1,A3\nF-CSV,Imported FG,FG,PCS,,1,A4\n";
         $file = UploadedFile::fake()->createWithContent('products.csv', $csv);
         $this->actingAs($this->admin)->post(route('products.import'), ['file' => $file])->assertRedirect(route('products.index'));
         $this->assertDatabaseHas('products', ['code' => 'P-CSV']);
+        $this->assertDatabaseHas('products', ['code' => 'S-CSV', 'product_type' => 'SUPPLY']);
+        $this->assertDatabaseHas('products', ['code' => 'W-CSV', 'product_type' => 'WIP']);
+        $this->assertDatabaseHas('products', ['code' => 'F-CSV', 'product_type' => 'FG']);
         $response = app(ReportController::class)->export(new Request, app(StockReportService::class), app(ProductSpreadsheetService::class));
         $this->assertSame('text/csv; charset=UTF-8', $response->headers->get('content-type'));
         $this->assertStringContainsString('stock-balances-', (string) $response->headers->get('content-disposition'));
