@@ -2,7 +2,7 @@
 @section('title','จ่ายสินค้า')
 @section('header','จ่ายสินค้า')
 @section('content')
-<div class="mb-8 flex flex-wrap items-end justify-between gap-4"><div><span class="badge-amber mb-3">{{$pendingCount}} คำขอรออนุมัติ</span><h2 class="page-title">ตรวจและจ่ายสินค้า</h2><p class="page-subtitle">เปิดคำขอ ตรวจจำนวน อนุมัติ และพิมพ์ใบเบิกสำหรับลงนาม</p></div><a href="{{route('requisitions.index')}}" class="btn-secondary">ดูคำขอทั้งหมด</a></div>
+<div class="mb-8 flex flex-wrap items-end justify-between gap-4"><div><span class="badge-amber mb-3">{{$pendingCount}} คำขอรออนุมัติ</span><h2 class="page-title">ตรวจและจ่ายสินค้า</h2><p class="page-subtitle">Admin อนุมัติ → พนักงานลงนาม → พิมพ์ PDF ส่งแผนกเบิก</p></div><a href="{{route('requisitions.index')}}" class="btn-secondary">ดูคำขอทั้งหมด</a></div>
 <div class="grid gap-4">
 @forelse($rows as $row)
 <a href="{{route('requisitions.show',$row)}}" class="panel group flex flex-wrap items-center gap-5 p-5 hover:border-blue-300">

@@ -9,7 +9,6 @@ use App\Services\StockService;
 use App\Support\Quantity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class StockReceiptController extends Controller
 {
@@ -27,9 +26,6 @@ class StockReceiptController extends Controller
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
         $product = Product::with('unit')->findOrFail($data['product_id']);
-        if (! in_array($product->product_type, [ProductType::PART, ProductType::SUPPLY], true)) {
-            throw ValidationException::withMessages(['product_id' => 'การรับเข้าจาก Supplier รองรับเฉพาะ PART หรือ SUPPLY เท่านั้น; WIP และ FG ต้องเข้าสต็อกจากขั้นตอนผลิต']);
-        }
         $type = match ($product->product_type) {
             ProductType::PART => StockDocumentType::PART_IN,
             ProductType::SUPPLY => StockDocumentType::SUPPLY_IN,
@@ -39,13 +35,13 @@ class StockReceiptController extends Controller
         $document = $stock->createAndPost([
             'document_date' => today()->format('Y-m-d'),
             'warehouse_id' => $data['warehouse_id'],
-            'purpose' => $product->product_type === ProductType::SUPPLY ? 'รับวัสดุสิ้นเปลืองเข้าสต็อก (SUPPLY)' : 'รับอะไหล่ผลิตเข้าสต็อก (PART)',
+            'purpose' => 'รับ '.$product->product_type->value.' เข้าสต็อกจาก Supplier',
             'note' => $data['note'] ?? null,
             'idempotency_key' => (string) Str::uuid(),
             'items' => [['product_id' => $product->id, 'quantity' => $data['quantity']]],
         ], $type, $request->user());
 
-        $typeName = $product->product_type === ProductType::SUPPLY ? 'วัสดุสิ้นเปลือง' : 'อะไหล่ PART';
+        $typeName = $product->product_type->value;
         return redirect()->route('products.index', ['type' => $product->product_type->value])
             ->with('success', "รับ {$typeName} ({$product->name}) จำนวน ".Quantity::format($data['quantity'])." {$product->unit->name} เข้าสต็อกแล้ว ({$document->document_no})");
     }

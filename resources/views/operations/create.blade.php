@@ -130,7 +130,7 @@ const hasPrice = @json($config['price_input']);
 let operationIndex = 0;
 
 function productOptions(selected='') {
-    return '<option value="">— เลือกสินค้า —</option>'+operationProducts.map(product => `<option value="${product.id}" ${String(selected)===String(product.id)?'selected':''}>${product.code} — ${product.name}</option>`).join('');
+    return '<option value="">— เลือกสินค้า —</option>'+operationProducts.map(product => `<option value="${product.id}" ${String(selected)===String(product.id)?'selected':''}>[${product.type}] ${product.code} — ${product.name}</option>`).join('');
 }
 function currentProduct(row) { return operationProducts.find(product => String(product.id)===String(row.querySelector('.product-select').value)); }
 

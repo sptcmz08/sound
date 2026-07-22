@@ -10,21 +10,21 @@
     $isRejected = $requisition->status->value === 'REJECTED';
     $isStaff = !$requisition->requester->isAdmin();
     $hasSigned = (bool) $requisition->requester_signed_at;
-    $canSign = $isPending && !$hasSigned && auth()->id() === $requisition->requested_by && $isStaff;
+    $pdfReady = $requisition->isReadyForPdf();
+    $canSign = $isApproved && !$hasSigned && auth()->id() === $requisition->requested_by && $isStaff;
 
     // Workflow steps
     $step = 1;
-    if ($isStaff && $hasSigned) $step = 2;
-    if ($isStaff && $isPending && $hasSigned) $step = 2;
-    if (!$isStaff && $isPending) $step = 2; // admin-created goes straight to approve
-    if ($isApproved) $step = 4;
+    if ($isApproved) $step = 2;
+    if ($isApproved && $hasSigned) $step = 4;
+    if (!$isStaff && $isApproved) $step = 4;
     if ($isRejected) $step = 0;
 
     $steps = [
         ['label' => 'สร้างใบเบิก', 'icon' => '📋', 'done' => true],
-        ['label' => 'ลงนามออนไลน์', 'icon' => '✍️', 'done' => $hasSigned || !$isStaff || $isApproved],
         ['label' => 'Admin อนุมัติ', 'icon' => '✅', 'done' => $isApproved],
-        ['label' => 'ดาวน์โหลด PDF', 'icon' => '📄', 'done' => $isApproved],
+        ['label' => 'พนักงานลงนาม', 'icon' => '✍️', 'done' => $hasSigned || !$isStaff],
+        ['label' => 'ดาวน์โหลด PDF', 'icon' => '📄', 'done' => $pdfReady],
     ];
 @endphp
 
@@ -39,7 +39,7 @@
     </div>
     <div class="flex gap-3">
         <a href="{{ route('requisitions.index') }}" class="btn-secondary">← กลับ</a>
-        @if($isApproved)
+        @if($pdfReady)
             <a href="{{ route('requisitions.pdf', $requisition) }}" class="btn-primary">
                 <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2m-12-5h12v8H6v-8Z"/></svg>
                 ดาวน์โหลด PDF
@@ -56,17 +56,9 @@
         @foreach($steps as $i => $s)
         @php
             $active = false;
-            if ($isStaff) {
-                if ($i === 0) $active = $isPending && !$hasSigned;
-                if ($i === 1) $active = $isPending && !$hasSigned && auth()->id() === $requisition->requested_by;
-                if ($i === 2) $active = $isPending && $hasSigned;
-                if ($i === 3) $active = $isApproved;
-            } else {
-                if ($i === 0) $active = false;
-                if ($i === 1) $active = false;
-                if ($i === 2) $active = $isPending;
-                if ($i === 3) $active = $isApproved;
-            }
+            if ($i === 1) $active = $isPending;
+            if ($i === 2) $active = $isApproved && $isStaff && !$hasSigned;
+            if ($i === 3) $active = $pdfReady;
         @endphp
         <div class="flex flex-1 flex-col items-center text-center">
             <div class="grid size-14 place-items-center rounded-2xl text-2xl transition-all
@@ -108,13 +100,13 @@
             </div>
         </section>
 
-        {{-- ลายเซ็นผู้ขอเบิก (เฉพาะพนักงาน) --}}
+        {{-- ลายเซ็นพนักงานหลัง Admin อนุมัติ --}}
         @if($isStaff)
         <section class="panel {{ $hasSigned ? 'border-emerald-200' : 'border-amber-200' }}">
             <div class="panel-header">
                 <div>
-                    <h3 class="text-xl font-bold text-slate-950">ขั้นตอนที่ 2: ลายเซ็นผู้ขอเบิก</h3>
-                    <p class="text-sm text-slate-500">ยืนยันตัวตนและลงนามออนไลน์ก่อนส่งให้แอดมินอนุมัติ</p>
+                    <h3 class="text-xl font-bold text-slate-950">ขั้นตอนที่ 3: พนักงานลงนามรับทราบ</h3>
+                    <p class="text-sm text-slate-500">ลงนามหลัง Admin อนุมัติ เพื่อออกเอกสาร PDF สำหรับส่งแผนกเบิก</p>
                 </div>
                 <span class="{{ $hasSigned ? 'badge-green' : 'badge-amber' }}">{{ $hasSigned ? 'ลงนามแล้ว' : 'รอลงนาม' }}</span>
             </div>
@@ -130,7 +122,7 @@
                 @elseif($canSign)
                     @if(auth()->user()->signature)
                     <div class="rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 p-6">
-                        <p class="mb-4 font-bold text-blue-900">กรุณาลงนามเพื่อส่งใบเบิกให้ Admin อนุมัติ</p>
+                        <p class="mb-4 font-bold text-blue-900">Admin อนุมัติแล้ว กรุณาลงนามเพื่อออกเอกสาร PDF</p>
                         <div class="grid items-end gap-4 md:grid-cols-[1fr_220px]">
                             <div>
                                 <img src="{{route('signature.show',auth()->user()->signature)}}" class="h-24 max-w-full object-contain" alt="ลายเซ็นที่บันทึกไว้">
@@ -145,8 +137,10 @@
                     @else
                     <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 p-4"><span>กรุณาบันทึกลายเซ็นและ PIN ก่อนลงนามเอกสาร</span><a href="{{route('signature.edit')}}" class="btn-primary">ตั้งค่าลายเซ็น</a></div>
                     @endif
+                @elseif($isPending)
+                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-800">ใบเบิกกำลังรอ Admin ตรวจสอบและอนุมัติ หลังอนุมัติแล้วจึงจะเปิดให้ลงนาม</div>
                 @else
-                    <p class="text-amber-700">กำลังรอ {{$requisition->requester->name}} ลงนามออนไลน์</p>
+                    <p class="text-slate-500">รายการนี้ไม่สามารถลงนามได้</p>
                 @endif
             </div>
         </section>
@@ -182,33 +176,21 @@
     {{-- Sidebar Actions --}}
     <aside class="space-y-6">
         @if($isPending && auth()->user()->isAdmin())
-            @if($isStaff && !$hasSigned)
-            <section class="rounded-2xl border border-amber-200 bg-amber-50 p-6">
-                <div class="flex items-center gap-3">
-                    <div class="grid size-12 place-items-center rounded-xl bg-amber-100 text-xl">⏳</div>
-                    <div>
-                        <h3 class="text-xl font-bold text-amber-900">รอลายเซ็นผู้ขอเบิก</h3>
-                        <p class="mt-1 text-amber-800">{{$requisition->requester->name}} ต้องลงนามออนไลน์ก่อน จึงจะอนุมัติได้</p>
-                    </div>
-                </div>
-            </section>
-            @else
             <section class="panel border-emerald-200">
                 <div class="panel-header bg-emerald-50">
                     <div>
-                        <h3 class="text-xl font-bold text-emerald-900">ขั้นตอนที่ 3: อนุมัติรายการ</h3>
-                        <p class="mt-0.5 text-sm text-emerald-700">ตรวจรายการก่อนอนุมัติและปรับสต็อก</p>
+                        <h3 class="text-xl font-bold text-emerald-900">ขั้นตอนที่ 2: Admin อนุมัติ</h3>
+                        <p class="mt-0.5 text-sm text-emerald-700">ตรวจรายการและยอดคงเหลือก่อนอนุมัติ</p>
                     </div>
                 </div>
                 <div class="panel-body">
                     <div class="mb-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                        เมื่ออนุมัติแล้ว ระบบจะตัดสต็อกทันที และสร้างเอกสาร PDF ให้ปริ้นไปส่งแผนกเบิก
+                        เมื่ออนุมัติ ระบบจะปรับสต็อกทันที จากนั้นพนักงานต้องลงนามก่อนดาวน์โหลด PDF
                     </div>
                     <form method="post" action="{{ route('requisitions.approve', $requisition) }}">@csrf<button class="btn-success w-full text-lg">✓ อนุมัติและบันทึกสต็อก</button></form>
                     <p class="mt-3 text-sm text-amber-700">⚠ ระบบจะตัดหรือเพิ่มสต็อกทันทีเมื่ออนุมัติ</p>
                 </div>
             </section>
-            @endif
             <section class="panel">
                 <div class="panel-body">
                     <form method="post" action="{{ route('requisitions.reject', $requisition) }}">@csrf<label><span class="label">เหตุผลที่ไม่อนุมัติ</span><textarea name="reason" class="input" rows="3" required></textarea></label><button class="btn-danger mt-4 w-full">ไม่อนุมัติ</button></form>
@@ -222,6 +204,13 @@
                     <p class="mt-2">ผู้อนุมัติ: {{ $requisition->approver->name }}<br>{{ $requisition->approved_at->format('d/m/Y H:i') }}</p>
                 </div>
             </section>
+            @if(!$pdfReady)
+            <section class="rounded-2xl border-2 border-amber-300 bg-amber-50 p-6 text-center">
+                <div class="mx-auto grid size-14 place-items-center rounded-full bg-amber-100 text-2xl">✍️</div>
+                <h3 class="mt-3 text-lg font-bold text-amber-900">รอพนักงานลงนาม</h3>
+                <p class="mt-2 text-sm text-amber-800">{{$requisition->requester->name}} ต้องลงนามรับทราบก่อน ระบบจึงจะออก PDF</p>
+            </section>
+            @else
             <section class="rounded-2xl border-2 border-blue-300 bg-gradient-to-b from-blue-50 to-white p-6 shadow-lg">
                 <div class="text-center">
                     <div class="mx-auto grid size-16 place-items-center rounded-2xl bg-blue-100 text-3xl">📄</div>
@@ -234,6 +223,7 @@
                     <a target="_blank" href="{{ route('requisitions.print', $requisition) }}" class="btn-secondary mt-3 w-full">ดูตัวอย่างก่อนพิมพ์</a>
                 </div>
             </section>
+            @endif
         @endif
     </aside>
 </div>

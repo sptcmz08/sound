@@ -183,7 +183,7 @@ class RequisitionWorkflowTest extends TestCase
         $this->actingAs($this->admin)->get(route('requisitions.index', ['focus' => $requisition->id]))
             ->assertOk()
             ->assertSee('รายการเบิกและผลิต')
-            ->assertSee('อนุมัติและปรับสต็อกแล้ว')
+            ->assertSee('อนุมัติแล้ว')
             ->assertSee('สร้างโดย Admin')
             ->assertSee('data-open-process', false)
             ->assertSee('ดาวน์โหลด PDF');
@@ -225,11 +225,14 @@ class RequisitionWorkflowTest extends TestCase
         $this->assertSame('12', $request->items->first()->quantity);
         $this->assertSame(RequisitionStatus::PENDING, $request->status);
 
-        $this->actingAs($this->admin)
-            ->from(route('requisitions.show', $request))
-            ->post(route('requisitions.approve', $request))
-            ->assertSessionHasErrors();
-        $this->assertSame(RequisitionStatus::PENDING, $request->fresh()->status);
+        $this->actingAs($this->staff)->post(route('requisitions.sign', $request), ['pin' => '2468'])
+            ->assertStatus(422);
+
+        $this->actingAs($this->admin)->post(route('requisitions.approve', $request))->assertRedirect();
+        $this->assertSame(RequisitionStatus::APPROVED, $request->fresh()->status);
+        $this->actingAs($this->staff)->get(route('requisitions.pdf', $request))->assertNotFound();
+        $this->assertSame('38', StockBalance::where('product_id', $this->part->id)->first()->quantity);
+        $this->assertSame('3', StockBalance::where('product_id', $this->wip->id)->first()->quantity);
 
         $this->actingAs($this->staff)->post(route('signature.update'), [
             'signature_data' => $this->signatureData(),
@@ -238,17 +241,6 @@ class RequisitionWorkflowTest extends TestCase
         $this->actingAs($this->staff)->post(route('requisitions.sign', $request), ['pin' => '2468'])
             ->assertRedirect()->assertSessionHasNoErrors();
         $this->assertNotNull($request->fresh()->requester_signed_at);
-
-        $this->actingAs($this->admin)->get(route('requisitions.show', $request))
-            ->assertOk()
-            ->assertDontSee('canvas id="signature"', false)
-            ->assertSee('อนุมัติและบันทึกสต็อก');
-
-        $this->actingAs($this->admin)->post(route('requisitions.approve', $request))->assertRedirect();
-
-        $this->assertSame('38', StockBalance::where('product_id', $this->part->id)->first()->quantity);
-        $this->assertSame('3', StockBalance::where('product_id', $this->wip->id)->first()->quantity);
-        $this->assertSame(RequisitionStatus::APPROVED, $request->fresh()->status);
         $this->actingAs($this->staff)->get(route('requisitions.print', $request))
             ->assertOk()
             ->assertSee($request->request_no)
@@ -261,9 +253,6 @@ class RequisitionWorkflowTest extends TestCase
         $this->actingAs($this->admin)->post(route('stock.receive.store'), ['product_id' => $this->part->id, 'warehouse_id' => $this->warehouse->id, 'quantity' => 2]);
         $this->actingAs($this->staff)->post(route('requisitions.store'), ['request_type' => RequisitionType::BUILD_WIP->value, 'warehouse_id' => $this->warehouse->id, 'target_product_id' => $this->wip->id, 'target_quantity' => 1, 'purpose' => 'ทดสอบ']);
         $request = Requisition::firstOrFail();
-
-        $this->actingAs($this->staff)->post(route('signature.update'), ['signature_data' => $this->signatureData(), 'pin' => '2468']);
-        $this->actingAs($this->staff)->post(route('requisitions.sign', $request), ['pin' => '2468']);
 
         $this->actingAs($this->admin)->from(route('requisitions.show', $request))->post(route('requisitions.approve', $request))->assertSessionHasErrors();
 

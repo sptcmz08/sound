@@ -1,18 +1,17 @@
 @php
     $isAdminCreated = $r->requester->isAdmin();
-    $canApprove = auth()->user()->isAdmin() && $r->status === \App\Enums\RequisitionStatus::PENDING && ($isAdminCreated || $r->requester_signed_at);
+    $canApprove = auth()->user()->isAdmin() && $r->status === \App\Enums\RequisitionStatus::PENDING;
+    $pdfReady = $r->isReadyForPdf();
 
     // Workflow step info
-    if ($r->status->value === 'APPROVED') {
+    if ($pdfReady) {
         $stepInfo = ['label' => 'เสร็จสิ้น — พร้อมดาวน์โหลด PDF ปริ้นส่งแผนกเบิก', 'class' => 'bg-emerald-50 text-emerald-800 border-emerald-200'];
+    } elseif ($r->status->value === 'APPROVED') {
+        $stepInfo = ['label' => 'Admin อนุมัติแล้ว — รอพนักงานลงนาม', 'class' => 'bg-blue-50 text-blue-800 border-blue-200'];
     } elseif ($r->status->value === 'REJECTED') {
         $stepInfo = ['label' => 'ไม่อนุมัติ — '.$r->rejection_reason, 'class' => 'bg-rose-50 text-rose-800 border-rose-200'];
-    } elseif ($isAdminCreated) {
-        $stepInfo = ['label' => 'รอ Admin อนุมัติ', 'class' => 'bg-amber-50 text-amber-800 border-amber-200'];
-    } elseif ($r->requester_signed_at) {
-        $stepInfo = ['label' => 'ลงนามแล้ว — รอ Admin ตรวจสอบและอนุมัติ', 'class' => 'bg-amber-50 text-amber-800 border-amber-200'];
     } else {
-        $stepInfo = ['label' => 'รอพนักงานลงนามออนไลน์', 'class' => 'bg-blue-50 text-blue-800 border-blue-200'];
+        $stepInfo = ['label' => 'รอ Admin ตรวจสอบและอนุมัติ', 'class' => 'bg-amber-50 text-amber-800 border-amber-200'];
     }
 @endphp
 <dialog id="process-{{$r->id}}" class="modal-dialog w-full max-w-4xl p-0">
@@ -27,21 +26,24 @@
             <div class="table-shell shadow-none"><div class="panel-header"><h4 class="text-lg font-bold text-slate-950">{{$r->request_type->isBuild()?'ส่วนประกอบที่ใช้':'รายการที่เบิก'}}</h4></div><div class="table-wrap"><table class="data-table"><thead><tr><th>รหัส</th><th>รายการ</th><th class="text-right">จำนวน</th><th>หมายเหตุ</th></tr></thead><tbody>@foreach($r->items as $item)<tr><td class="font-mono font-bold">{{$item->product->code}}</td><td><div class="flex items-center gap-3"><x-product-image :product="$item->product" size="sm" /><span>{{$item->product->name}}</span></div></td><td class="text-right font-bold">{{\App\Support\Quantity::format($item->quantity)}} {{$item->product->unit->name}}</td><td>{{$item->note ?: '—'}}</td></tr>@endforeach</tbody></table></div></div>
             @if($r->status === \App\Enums\RequisitionStatus::REJECTED)<div class="mt-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-800"><strong>เหตุผลที่ไม่อนุมัติ:</strong> {{$r->rejection_reason}}</div>@endif
             @if(auth()->user()->isAdmin() && $r->status === \App\Enums\RequisitionStatus::PENDING)
-                @if(!$r->requester_signed_at && !$isAdminCreated)<div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">กำลังรอ {{$r->requester->name}} ลงนามออนไลน์ จึงจะอนุมัติได้</div>@endif
                 <div class="mt-6 grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-2">@if($canApprove)<form method="post" action="{{route('requisitions.approve',$r)}}">@csrf<button class="btn-success w-full">✓ อนุมัติและปรับสต็อก</button></form>@endif<form method="post" action="{{route('requisitions.reject',$r)}}">@csrf<textarea name="reason" class="input reject-reason" rows="2" required placeholder="ระบุเหตุผลที่ไม่อนุมัติ"></textarea><button class="btn-danger mt-3 w-full">ไม่อนุมัติรายการ</button></form></div>
             @elseif($r->status === \App\Enums\RequisitionStatus::APPROVED)
                 <div class="mt-6 border-t border-slate-100 pt-6">
                     <div class="rounded-xl border-2 border-blue-200 bg-blue-50 p-5 text-center">
+                        @if($pdfReady)
                         <p class="text-lg font-bold text-blue-900">📄 เอกสารพร้อมแล้ว</p>
                         <p class="mt-1 text-sm text-blue-700">ดาวน์โหลด PDF แล้วปริ้นไปส่งแผนกเบิกเพื่อรับสินค้า</p>
                         <div class="mt-4 flex flex-wrap justify-center gap-3">
                             <a href="{{route('requisitions.pdf',$r)}}" class="btn-primary">ดาวน์โหลด PDF</a>
                             <a target="_blank" href="{{route('requisitions.print',$r)}}" class="btn-secondary">ดูตัวอย่างเอกสาร</a>
                         </div>
+                        @else
+                        <p class="text-lg font-bold text-blue-900">✍️ รอพนักงานลงนาม</p>
+                        <p class="mt-1 text-sm text-blue-700">Admin อนุมัติแล้ว พนักงานต้องลงนามก่อนออก PDF</p>
+                        @if(auth()->id() === $r->requested_by)<a href="{{route('requisitions.show',$r)}}" class="btn-primary mt-4">เปิดเพื่อลงนาม</a>@endif
+                        @endif
                     </div>
                 </div>
-            @elseif(auth()->id() === $r->requested_by)
-                <div class="mt-6 flex justify-end border-t border-slate-100 pt-6"><a href="{{route('requisitions.show',$r)}}" class="btn-primary">เปิดเพื่อลงนามออนไลน์</a></div>
             @endif
         </div>
     </div>

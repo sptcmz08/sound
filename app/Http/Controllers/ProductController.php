@@ -36,7 +36,7 @@ class ProductController extends Controller
 
         return view('products.index', [
             'products' => $products,
-            'receiptProducts' => Product::with('unit')->where('is_active', true)->whereIn('product_type', [ProductType::PART, ProductType::SUPPLY])->orderBy('code')->get(),
+            'receiptProducts' => Product::with('unit')->where('is_active', true)->orderBy('product_type')->orderBy('code')->get(),
             'warehouses' => Warehouse::where('is_active', true)->orderBy('code')->get(),
         ]);
     }

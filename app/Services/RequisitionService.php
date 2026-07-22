@@ -51,15 +51,15 @@ class RequisitionService
                     $request->items()->create(['product_id' => $component->id, 'quantity' => (string) $total, 'note' => 'ส่วนประกอบตามสูตร']);
                 }
             } else {
-                $expectedType = match ($type) {
-                    RequisitionType::GENERAL_ISSUE => ProductType::PART,
-                    RequisitionType::ISSUE_WIP => ProductType::WIP,
-                    RequisitionType::ISSUE_FG => ProductType::FG,
+                $expectedTypes = match ($type) {
+                    RequisitionType::GENERAL_ISSUE => [ProductType::PART, ProductType::SUPPLY],
+                    RequisitionType::ISSUE_WIP => [ProductType::WIP],
+                    RequisitionType::ISSUE_FG => [ProductType::FG],
                     default => throw new \LogicException('Unsupported requisition type'),
                 };
                 foreach ($data['items'] as $line) {
                     $product = Product::findOrFail($line['product_id']);
-                    if ($product->product_type !== $expectedType || ! $product->is_active) {
+                    if (! in_array($product->product_type, $expectedTypes, true) || ! $product->is_active) {
                         throw ValidationException::withMessages(['items' => 'รายการสินค้ามีประเภทไม่ตรงกับประเภทการเบิก']);
                     }
                     $request->items()->create(['product_id' => $product->id, 'quantity' => $line['quantity'], 'note' => $line['note'] ?? null]);
@@ -120,14 +120,14 @@ class RequisitionService
     private function inType(ProductType $type): StockDocumentType
     {
         return match ($type) {
-            ProductType::PART => StockDocumentType::PART_IN, ProductType::WIP => StockDocumentType::WIP_IN, ProductType::FG => StockDocumentType::FG_IN
+            ProductType::PART => StockDocumentType::PART_IN, ProductType::SUPPLY => StockDocumentType::SUPPLY_IN, ProductType::WIP => StockDocumentType::WIP_IN, ProductType::FG => StockDocumentType::FG_IN
         };
     }
 
     private function outType(ProductType $type): StockDocumentType
     {
         return match ($type) {
-            ProductType::PART => StockDocumentType::PART_OUT, ProductType::WIP => StockDocumentType::WIP_OUT, ProductType::FG => StockDocumentType::FG_OUT
+            ProductType::PART => StockDocumentType::PART_OUT, ProductType::SUPPLY => StockDocumentType::SUPPLY_OUT, ProductType::WIP => StockDocumentType::WIP_OUT, ProductType::FG => StockDocumentType::FG_OUT
         };
     }
 }

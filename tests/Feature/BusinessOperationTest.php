@@ -3,13 +3,11 @@
 namespace Tests\Feature;
 
 use App\Enums\ProductType;
-use App\Enums\StockDocumentType;
 use App\Models\Product;
 use App\Models\StockBalance;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Services\StockService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -24,6 +22,8 @@ class BusinessOperationTest extends TestCase
 
     private Product $part;
 
+    private Product $supply;
+
     private Product $wip;
 
     private Product $fg;
@@ -36,6 +36,7 @@ class BusinessOperationTest extends TestCase
         $this->warehouse = Warehouse::create(['code' => 'MAIN', 'name' => 'คลังหลัก']);
         $base = ['unit_id' => $unit->id, 'minimum_stock' => 0, 'standard_cost' => 0, 'sale_price' => 0, 'is_active' => true, 'created_by' => $this->admin->id, 'updated_by' => $this->admin->id];
         $this->part = Product::create($base + ['code' => 'PART-01', 'name' => 'PART ทดสอบ', 'product_type' => ProductType::PART]);
+        $this->supply = Product::create($base + ['code' => 'SUP-01', 'name' => 'SUPPLY ทดสอบ', 'product_type' => ProductType::SUPPLY]);
         $this->wip = Product::create($base + ['code' => 'WIP-01', 'name' => 'WIP ทดสอบ', 'product_type' => ProductType::WIP]);
         $this->fg = Product::create(array_merge($base, ['code' => 'FG-01', 'name' => 'FG ทดสอบ', 'product_type' => ProductType::FG, 'standard_cost' => 8, 'sale_price' => 20]));
     }
@@ -43,6 +44,12 @@ class BusinessOperationTest extends TestCase
     public function test_new_sidebar_pages_and_reports_render(): void
     {
         $this->actingAs($this->admin)->get(route('dashboard'))->assertOk()->assertSee('เบิก-จ่าย')->assertSee('ต้นทุน - กำไร');
+        $this->actingAs($this->admin)->get(route('operations.create', 'supplier-receive'))
+            ->assertOk()
+            ->assertSee($this->part->code)
+            ->assertSee($this->supply->code)
+            ->assertSee($this->wip->code)
+            ->assertSee($this->fg->code);
         foreach (['supplier-receive', 'sale', 'claim', 'waste'] as $operation) {
             $this->actingAs($this->admin)->get(route('operations.create', $operation))->assertOk();
         }
@@ -54,16 +61,21 @@ class BusinessOperationTest extends TestCase
     public function test_supplier_sale_claim_and_waste_update_stock_and_financial_data(): void
     {
         $this->postOperation('supplier-receive', $this->part, 10, ['unit_cost' => 5, 'contact_name' => 'Supplier A'])->assertRedirect();
+        $this->postOperation('supplier-receive', $this->supply, 4, ['unit_cost' => 2, 'contact_name' => 'Supplier A'])->assertRedirect();
+        $this->postOperation('supplier-receive', $this->wip, 3, ['unit_cost' => 7, 'contact_name' => 'Supplier B'])->assertRedirect();
+        $this->postOperation('supplier-receive', $this->fg, 5, ['unit_cost' => 8, 'contact_name' => 'Supplier B'])->assertRedirect();
         $this->assertSame('10', StockBalance::where('product_id', $this->part->id)->value('quantity'));
+        $this->assertSame('4', StockBalance::where('product_id', $this->supply->id)->value('quantity'));
+        $this->assertSame('3', StockBalance::where('product_id', $this->wip->id)->value('quantity'));
+        $this->assertSame('5', StockBalance::where('product_id', $this->fg->id)->value('quantity'));
         $this->assertSame('5', $this->part->fresh()->standard_cost);
 
-        app(StockService::class)->createAndPost($this->stockData($this->fg, 5), StockDocumentType::FG_IN, $this->admin);
         $this->postOperation('sale', $this->fg, 2, ['unit_price' => 20, 'contact_name' => 'Customer A'])->assertRedirect();
         $this->assertSame('3', StockBalance::where('product_id', $this->fg->id)->value('quantity'));
         $this->assertDatabaseHas('stock_document_items', ['product_id' => $this->fg->id, 'quantity' => 2, 'unit_cost' => 8, 'unit_price' => 20]);
 
         $this->postOperation('claim', $this->wip, 2, ['contact_name' => 'Customer B', 'note' => 'ชำรุดจากลูกค้า'])->assertRedirect();
-        $this->assertSame('2', StockBalance::where('product_id', $this->wip->id)->value('quantity'));
+        $this->assertSame('5', StockBalance::where('product_id', $this->wip->id)->value('quantity'));
 
         $this->postOperation('waste', $this->part, 1, ['note' => 'เสียจากการผลิต'])->assertRedirect();
         $this->assertSame('9', StockBalance::where('product_id', $this->part->id)->value('quantity'));
@@ -80,8 +92,4 @@ class BusinessOperationTest extends TestCase
         ], array_diff_key($extra, ['unit_cost' => true, 'unit_price' => true])));
     }
 
-    private function stockData(Product $product, int $quantity): array
-    {
-        return ['document_date' => today()->format('Y-m-d'), 'warehouse_id' => $this->warehouse->id, 'idempotency_key' => (string) Str::uuid(), 'items' => [['product_id' => $product->id, 'quantity' => $quantity]]];
-    }
 }

@@ -154,7 +154,7 @@ class RequisitionController extends Controller
         return redirect()->route('requisitions.index', ['focus' => $requisition->id])
             ->with('success', $request->user()->isAdmin()
                 ? 'บันทึกสูตร ผลิต WIP และปรับสต็อกเรียบร้อยแล้ว'
-                : 'บันทึกสูตรและสร้างใบเบิกแล้ว กรุณาลงนามออนไลน์เพื่อส่งให้แอดมินอนุมัติ');
+                : 'บันทึกสูตรและสร้างใบเบิกแล้ว กรุณารอ Admin ตรวจสอบและอนุมัติ');
     }
 
     public function issues()
@@ -207,7 +207,7 @@ class RequisitionController extends Controller
 
         return redirect()->route('requisitions.index', ['focus' => $requisition->id])->with('success', $request->user()->isAdmin()
             ? 'บันทึก อนุมัติ และปรับสต็อกเรียบร้อยแล้ว'
-            : 'สร้างใบเบิกแล้ว กรุณาลงนามออนไลน์เพื่อส่งให้ผู้ดูแลระบบอนุมัติ');
+            : 'สร้างใบเบิกแล้ว กรุณารอ Admin ตรวจสอบและอนุมัติ');
     }
 
     public function show(Request $request, Requisition $requisition)
@@ -219,18 +219,17 @@ class RequisitionController extends Controller
 
     public function approve(Request $request, Requisition $requisition, RequisitionService $service)
     {
-        if (! $requisition->requester->isAdmin() && ! $requisition->requester_signed_at) {
-            throw ValidationException::withMessages(['signature' => 'ผู้ขอเบิกต้องลงนามออนไลน์ก่อนอนุมัติ']);
-        }
         $service->approve($requisition, $request->user());
 
-        return redirect()->route('requisitions.show', $requisition)->with('success', 'อนุมัติและตัดสต็อกเรียบร้อยแล้ว');
+        return redirect()->route('requisitions.show', $requisition)->with('success', $requisition->requester->isAdmin()
+            ? 'อนุมัติและปรับสต็อกเรียบร้อยแล้ว'
+            : 'อนุมัติและปรับสต็อกแล้ว ระบบกำลังรอพนักงานลงนามก่อนออก PDF');
     }
 
     public function sign(Request $request, Requisition $requisition, AuditLogService $audit)
     {
         abort_unless($requisition->requested_by === $request->user()->id, 403);
-        abort_unless($requisition->status === RequisitionStatus::PENDING && ! $requisition->requester_signed_at, 422);
+        abort_unless($requisition->status === RequisitionStatus::APPROVED && ! $requisition->requester_signed_at && ! $requisition->requester->isAdmin(), 422);
         $data = $request->validate(['pin' => ['required', 'digits:4']]);
         $signature = UserSignature::where('user_id', $request->user()->id)->first();
         if (! $signature || ! $signature->verifyPin($data['pin'])) {
@@ -244,7 +243,7 @@ class RequisitionController extends Controller
         $requisition->update(['requester_signature_path' => $snapshot, 'requester_signed_at' => now()]);
         $audit->record($request->user(), 'SIGN', 'requisition', $requisition->id, null, ['signed_at' => $requisition->requester_signed_at]);
 
-        return back()->with('success', 'ลงนามใบเบิกออนไลน์เรียบร้อยแล้ว');
+        return back()->with('success', 'ลงนามเรียบร้อยแล้ว เอกสาร PDF พร้อมดาวน์โหลดและพิมพ์ส่งแผนกเบิก');
     }
 
     public function signature(Request $request, Requisition $requisition)
@@ -266,9 +265,8 @@ class RequisitionController extends Controller
     public function print(Request $request, Requisition $requisition)
     {
         abort_unless($request->user()->isAdmin() || $requisition->requested_by === $request->user()->id, 403);
-        abort_unless($requisition->status === RequisitionStatus::APPROVED, 404);
-
         $requisition->load(['items.product.unit', 'targetProduct.unit', 'warehouse', 'requester', 'approver', 'stockDocuments']);
+        abort_unless($requisition->isReadyForPdf(), 404);
 
         return view('requisitions.print', ['requisition' => $requisition, 'requesterSignatureData' => $this->signatureData($requisition)]);
     }
@@ -276,9 +274,8 @@ class RequisitionController extends Controller
     public function pdf(Request $request, Requisition $requisition)
     {
         abort_unless($request->user()->isAdmin() || $requisition->requested_by === $request->user()->id, 403);
-        abort_unless($requisition->status === RequisitionStatus::APPROVED, 404);
-
         $requisition->load(['items.product.unit', 'targetProduct.unit', 'warehouse', 'requester', 'approver', 'stockDocuments']);
+        abort_unless($requisition->isReadyForPdf(), 404);
 
         File::ensureDirectoryExists(storage_path('fonts'));
         $pdf = Pdf::loadView('requisitions.print', ['requisition' => $requisition, 'pdfMode' => true, 'requesterSignatureData' => $this->signatureData($requisition)])

@@ -134,8 +134,8 @@ class StockService
     private function transactionType(StockDocumentType $type): StockTransactionType
     {
         return match ($type) {
-            StockDocumentType::PART_IN,StockDocumentType::WIP_IN,StockDocumentType::FG_IN,StockDocumentType::SUPPLIER_IN,StockDocumentType::CLAIM_IN => StockTransactionType::IN,
-            StockDocumentType::PART_OUT,StockDocumentType::WIP_OUT,StockDocumentType::FG_OUT,StockDocumentType::SALE_OUT,StockDocumentType::WASTE_OUT => StockTransactionType::OUT,
+            StockDocumentType::PART_IN,StockDocumentType::SUPPLY_IN,StockDocumentType::WIP_IN,StockDocumentType::FG_IN,StockDocumentType::SUPPLIER_IN,StockDocumentType::CLAIM_IN => StockTransactionType::IN,
+            StockDocumentType::PART_OUT,StockDocumentType::SUPPLY_OUT,StockDocumentType::WIP_OUT,StockDocumentType::FG_OUT,StockDocumentType::SALE_OUT,StockDocumentType::WASTE_OUT => StockTransactionType::OUT,
             StockDocumentType::ADJUST_IN => StockTransactionType::ADJUST_IN,
             StockDocumentType::ADJUST_OUT => StockTransactionType::ADJUST_OUT,
             default => throw new \LogicException('Unsupported document type')

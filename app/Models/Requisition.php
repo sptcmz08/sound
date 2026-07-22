@@ -50,4 +50,13 @@ class Requisition extends Model
     {
         return $this->belongsToMany(StockDocument::class, 'requisition_stock_documents');
     }
+
+    public function isReadyForPdf(): bool
+    {
+        if ($this->status !== RequisitionStatus::APPROVED) {
+            return false;
+        }
+
+        return $this->requester->isAdmin() || (bool) $this->requester_signed_at;
+    }
 }

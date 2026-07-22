@@ -4,8 +4,8 @@
 @php
     $groupedRows = $rows->getCollection()->groupBy(fn($row) => $row->status->value);
     $sections = [
-        ['status' => 'PENDING', 'title' => 'รอดำเนินการ', 'subtitle' => 'รายการที่รอลงนามหรือรอผู้ดูแลระบบตรวจสอบ', 'badge' => 'badge-amber', 'dot' => 'bg-amber-500'],
-        ['status' => 'APPROVED', 'title' => 'อนุมัติและปรับสต็อกแล้ว', 'subtitle' => 'รายการที่ดำเนินการสำเร็จ สามารถดาวน์โหลด PDF ไปส่งแผนกเบิกได้', 'badge' => 'badge-green', 'dot' => 'bg-emerald-500'],
+        ['status' => 'PENDING', 'title' => 'รอ Admin อนุมัติ', 'subtitle' => 'ใบเบิกที่รอผู้ดูแลระบบตรวจสอบและอนุมัติ', 'badge' => 'badge-amber', 'dot' => 'bg-amber-500'],
+        ['status' => 'APPROVED', 'title' => 'อนุมัติแล้ว', 'subtitle' => 'พนักงานลงนามหลังอนุมัติ แล้วจึงดาวน์โหลด PDF ไปส่งแผนกเบิก', 'badge' => 'badge-green', 'dot' => 'bg-emerald-500'],
         ['status' => 'REJECTED', 'title' => 'ไม่อนุมัติ', 'subtitle' => 'รายการที่ถูกตีกลับพร้อมเหตุผล', 'badge' => 'badge-red', 'dot' => 'bg-rose-500'],
     ];
 @endphp
@@ -18,7 +18,7 @@
 {{-- Workflow Flow Info --}}
 <div class="mb-7 flex flex-wrap items-center gap-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-3">
     <span class="text-sm font-bold text-blue-700">ขั้นตอน:</span>
-    @foreach(['📋 สร้างใบเบิก', '✍️ ลงนามออนไลน์', '✅ Admin อนุมัติ', '📄 ปริ้น PDF ส่งแผนกเบิก'] as $i => $flowStep)
+    @foreach(['📋 สร้างใบเบิก', '✅ Admin อนุมัติ', '✍️ พนักงานลงนาม', '📄 ปริ้น PDF ส่งแผนกเบิก'] as $i => $flowStep)
     <span class="text-sm font-semibold text-slate-700">{{$flowStep}}</span>
     @if($i < 3)<span class="text-blue-300">→</span>@endif
     @endforeach
@@ -45,25 +45,23 @@
                 @forelse($sectionRows as $r)
                     @php
                         $isAdminCreated = $r->requester->isAdmin();
-                        $canApprove = auth()->user()->isAdmin() && $r->status === \App\Enums\RequisitionStatus::PENDING && ($isAdminCreated || $r->requester_signed_at);
+                        $canApprove = auth()->user()->isAdmin() && $r->status === \App\Enums\RequisitionStatus::PENDING;
+                        $pdfReady = $r->isReadyForPdf();
                         $displayProduct = $r->targetProduct ?? $r->items->first()?->product;
 
                         // Determine workflow step
-                        if ($r->status->value === 'APPROVED') {
+                        if ($pdfReady) {
                             $stepLabel = '📄 PDF พร้อม';
                             $stepClass = 'bg-emerald-100 text-emerald-800';
+                        } elseif ($r->status->value === 'APPROVED') {
+                            $stepLabel = '✍️ รอพนักงานลงนาม';
+                            $stepClass = 'bg-blue-100 text-blue-800';
                         } elseif ($r->status->value === 'REJECTED') {
                             $stepLabel = '✕ ไม่อนุมัติ';
                             $stepClass = 'bg-rose-100 text-rose-800';
-                        } elseif ($isAdminCreated) {
-                            $stepLabel = '⏳ รออนุมัติ';
-                            $stepClass = 'bg-amber-100 text-amber-800';
-                        } elseif ($r->requester_signed_at) {
+                        } else {
                             $stepLabel = '⏳ รอ Admin อนุมัติ';
                             $stepClass = 'bg-amber-100 text-amber-800';
-                        } else {
-                            $stepLabel = '✍️ รอลงนาม';
-                            $stepClass = 'bg-blue-100 text-blue-800';
                         }
                     @endphp
                     <tr>
@@ -75,7 +73,7 @@
                         <td>
                             <div class="flex min-w-max justify-end gap-2">
                                 <a href="{{route('requisitions.show',$r)}}" class="btn-secondary px-4 py-2">รายละเอียด</a>
-                                @if($r->status->value === 'APPROVED')
+                                @if($pdfReady)
                                     <a href="{{route('requisitions.pdf',$r)}}" class="btn-primary px-4 py-2">📄 PDF</a>
                                 @elseif($canApprove)
                                     <form method="post" action="{{route('requisitions.approve',$r)}}">@csrf<button class="btn-success px-4 py-2">อนุมัติ</button></form>

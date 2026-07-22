@@ -18,7 +18,7 @@ class BusinessOperationController extends Controller
     {
         $config = $this->config($operation);
         $filterType = $request->query('type');
-        if ($filterType && in_array($filterType, ['PART', 'SUPPLY'], true)) {
+        if ($filterType && in_array($filterType, ['PART', 'SUPPLY', 'WIP', 'FG'], true)) {
             $config['filter_type'] = $filterType;
             if ($filterType === 'PART') {
                 $config['title'] = 'รับอะไหล่ผลิตเข้าสต็อก (PART)';
@@ -26,6 +26,12 @@ class BusinessOperationController extends Controller
             } elseif ($filterType === 'SUPPLY') {
                 $config['title'] = 'รับวัสดุสิ้นเปลืองเข้าสต็อก (SUPPLY)';
                 $config['subtitle'] = 'รับวัสดุสิ้นเปลือง (เช่น กาว, น้ำยา, เทป) ที่ไม่ต้องระบุใน BOM';
+            } elseif ($filterType === 'WIP') {
+                $config['title'] = 'รับ WIP เข้าสต็อกจาก Supplier';
+                $config['subtitle'] = 'รับงานระหว่างประกอบที่จัดซื้อหรือรับจากผู้ผลิตภายนอก';
+            } elseif ($filterType === 'FG') {
+                $config['title'] = 'รับ FG เข้าสต็อกจาก Supplier';
+                $config['subtitle'] = 'รับสินค้าสำเร็จรูปที่จัดซื้อหรือรับจากผู้ผลิตภายนอก';
             }
         }
         $products = Product::with(['unit', 'balances', 'optionGroups.items.optionProduct.balances', 'optionGroups.items.optionProduct.unit'])->where('is_active', true)
@@ -138,8 +144,8 @@ class BusinessOperationController extends Controller
     {
         return match ($operation) {
             'supplier-receive' => [
-                'title' => 'รับเข้าจาก Supplier', 'subtitle' => 'รับ PART และวัสดุสิ้นเปลืองเข้าสต็อก พร้อมบันทึกต้นทุนล่าสุด',
-                'document_type' => StockDocumentType::SUPPLIER_IN, 'product_types' => [ProductType::PART->value, ProductType::SUPPLY->value],
+                'title' => 'รับเข้าจาก Supplier', 'subtitle' => 'รับเข้าได้ทุกประเภท: PART, SUPPLY, WIP และ FG พร้อมบันทึกต้นทุนล่าสุด',
+                'document_type' => StockDocumentType::SUPPLIER_IN, 'product_types' => [ProductType::PART->value, ProductType::SUPPLY->value, ProductType::WIP->value, ProductType::FG->value],
                 'party_label' => 'Supplier', 'party_required' => true, 'note_required' => false, 'cost_input' => true, 'price_input' => false, 'direction' => 'in',
             ],
             'sale' => [
