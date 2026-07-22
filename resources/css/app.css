@@ -23,6 +23,31 @@
     summary::marker { display: none !important; }
     summary { list-style: none !important; }
     [x-cloak] { display: none !important; }
+    a, a:hover, a:focus, a:active { text-decoration: none !important; }
+}
+
+.btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-primary:active,
+a.btn-primary, a.btn-primary:hover, a.btn-primary:focus, a.btn-primary:active {
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.btn-success, .btn-success:hover, .btn-success:focus, .btn-success:active,
+a.btn-success, a.btn-success:hover, a.btn-success:focus, a.btn-success:active {
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.btn-danger, .btn-danger:hover, .btn-danger:focus, .btn-danger:active,
+a.btn-danger, a.btn-danger:hover, a.btn-danger:focus, a.btn-danger:active {
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.btn-secondary, .btn-secondary:hover, .btn-secondary:focus, .btn-secondary:active,
+a.btn-secondary, a.btn-secondary:hover, a.btn-secondary:focus, a.btn-secondary:active {
+    color: #334155 !important;
+    text-decoration: none !important;
 }
 
 @layer components {

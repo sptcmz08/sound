@@ -31,19 +31,19 @@
 
     {{-- Product Type Tabs --}}
     <div class="grid grid-cols-2 gap-2 rounded-3xl bg-slate-200/60 p-1.5 sm:grid-cols-4">
-        <a href="{{ route('products.index', ['type' => 'PART']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type', 'PART') === 'PART' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+        <a href="{{ route('products.index', ['type' => 'PART']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm no-underline text-decoration-none {{ request('type', 'PART') === 'PART' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
             <span class="size-2 rounded-full bg-blue-500"></span>
             PART (อะไหล่ผลิต)
         </a>
-        <a href="{{ route('products.index', ['type' => 'SUPPLY']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type') === 'SUPPLY' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+        <a href="{{ route('products.index', ['type' => 'SUPPLY']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm no-underline text-decoration-none {{ request('type') === 'SUPPLY' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
             <span class="size-2 rounded-full bg-slate-500"></span>
             SUPPLY (วัสดุสิ้นเปลือง)
         </a>
-        <a href="{{ route('products.index', ['type' => 'WIP']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type') === 'WIP' ? 'bg-white text-violet-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+        <a href="{{ route('products.index', ['type' => 'WIP']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm no-underline text-decoration-none {{ request('type') === 'WIP' ? 'bg-white text-violet-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
             <span class="size-2 rounded-full bg-violet-500"></span>
             WIP (งานประกอบ)
         </a>
-        <a href="{{ route('products.index', ['type' => 'FG']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm {{ request('type') === 'FG' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
+        <a href="{{ route('products.index', ['type' => 'FG']) }}" class="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition-all sm:text-sm no-underline text-decoration-none {{ request('type') === 'FG' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-black/5' : 'text-slate-600 hover:text-slate-900' }}">
             <span class="size-2 rounded-full bg-emerald-500"></span>
             FG (สินค้าสำเร็จรูป)
         </a>
