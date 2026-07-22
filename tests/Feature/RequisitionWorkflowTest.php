@@ -85,6 +85,9 @@ class RequisitionWorkflowTest extends TestCase
             ->assertSee($this->fg->code)
             ->assertSee('id="open-requisition-cart"', false)
             ->assertSee('id="requisition-cart"', false)
+            ->assertSee('left-1/2 top-1/2', false)
+            ->assertSee("imageFor(product, 'large')", false)
+            ->assertDontSee("renderCatalog();\n    openCart();", false)
             ->assertDontSee('ข้อมูลรายการ')
             ->assertDontSee('Admin ทำรายการ')
             ->assertSee('const isAdmin = false', false);

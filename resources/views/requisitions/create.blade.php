@@ -108,7 +108,7 @@
 
         @unless($isProduction)
         <div id="requisition-cart-backdrop" class="fixed inset-0 z-[60] hidden bg-slate-950/40 backdrop-blur-sm"></div>
-        <aside id="requisition-cart" class="fixed inset-y-0 right-0 z-[70] flex w-full max-w-2xl translate-x-full flex-col bg-white shadow-2xl transition-transform duration-300" role="dialog" aria-modal="true" aria-labelledby="requisition-cart-title">
+        <aside id="requisition-cart" class="fixed left-1/2 top-1/2 z-[70] hidden max-h-[90vh] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="requisition-cart-title">
             <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h3 id="requisition-cart-title" class="text-lg font-bold text-slate-900">รายการเบิกสินค้า</h3><p class="text-xs text-slate-500">ตรวจสินค้า จำนวน และข้อมูลใบเบิกก่อนส่ง</p></div><button type="button" id="close-requisition-cart" class="grid size-10 place-items-center rounded-lg text-xl text-slate-500 hover:bg-slate-100" aria-label="ปิดรายการเบิก">×</button></div>
             <div class="flex-1 space-y-5 overflow-y-auto p-5">
                 <section class="rounded-xl border border-slate-200 p-4">
@@ -153,10 +153,11 @@ const outputType = () => selectedType() === 'BUILD_WIP' ? 'WIP' : 'FG';
 const productById = id => requisitionProducts.find(product => String(product.id) === String(id));
 const outputPool = () => requisitionProducts.filter(product => product.type === outputType() && product.components.length);
 
-function imageFor(product) {
+function imageFor(product, size = 'default') {
+    const sizeClass = size === 'large' ? 'size-16' : 'size-12';
     return product?.image
-        ? `<img src="${product.image}" class="size-10 shrink-0 rounded-lg border border-slate-200 bg-white object-cover" alt="">`
-        : '<span class="grid size-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400">□</span>';
+        ? `<img src="${product.image}" class="${sizeClass} shrink-0 rounded-xl border border-slate-200 bg-white object-cover" alt="">`
+        : `<span class="grid ${sizeClass} shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-400">□</span>`;
 }
 
 function balanceFor(product) {
@@ -174,14 +175,16 @@ function syncRequestType() {
 
 function openCart() {
     if (!cartDrawer) return;
-    cartDrawer.classList.remove('translate-x-full');
+    cartDrawer.classList.remove('hidden');
+    cartDrawer.classList.add('flex');
     cartBackdrop?.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
 }
 
 function closeCart() {
     if (!cartDrawer) return;
-    cartDrawer.classList.add('translate-x-full');
+    cartDrawer.classList.add('hidden');
+    cartDrawer.classList.remove('flex');
     cartBackdrop?.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
 }
@@ -199,7 +202,7 @@ function renderCatalog() {
     catalogBody.innerHTML = products.map(product => {
         const selected = selectedIds.has(String(product.id));
         return `<tr>
-            <td><div class="flex min-w-52 items-center gap-3">${imageFor(product)}<div><strong class="block text-xs text-slate-800">${escapeValue(product.code)}</strong><span class="text-[11px] text-slate-500">${escapeValue(product.name)}</span></div></div></td>
+            <td><div class="flex min-w-64 items-center gap-4">${imageFor(product, 'large')}<div><strong class="block text-sm text-slate-800">${escapeValue(product.code)}</strong><span class="mt-1 block text-xs text-slate-500">${escapeValue(product.name)}</span></div></div></td>
             <td><span class="badge-slate">${escapeValue(typeLabels[product.type] ?? product.type)}</span></td>
             <td class="text-right"><strong class="text-sm text-slate-800">${balanceFor(product)}</strong></td>
             <td><div class="flex justify-end gap-2"><button type="button" class="${selected ? 'btn-secondary opacity-60' : 'btn-primary'}" data-add-product="${product.id}" ${selected ? 'disabled' : ''}>${selected ? 'เลือกแล้ว' : 'เบิก'}</button>${isAdmin ? `<a href="${issueQueueUrl}?product_id=${product.id}" class="btn-secondary">จ่าย</a>` : ''}</div></td>
@@ -222,7 +225,6 @@ function addProduct(productId) {
     syncRequestType();
     renderItems();
     renderCatalog();
-    openCart();
 }
 
 function renderItems() {
