@@ -6,7 +6,7 @@
 </div>
 
 <details open class="sidebar-group mb-4">
-    <summary class="sidebar-group-title flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
+    <summary class="sidebar-group-title flex cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
         <span>รายการสินค้า & สต็อก</span>
         <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </summary>
@@ -47,7 +47,7 @@
 </details>
 
 <details open class="sidebar-group mb-4">
-    <summary class="sidebar-group-title flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
+    <summary class="sidebar-group-title flex cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
         <span>รายงาน & สถิติ</span>
         <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </summary>
@@ -77,7 +77,7 @@
 
 @if(auth()->user()->isAdmin())
 <details class="sidebar-group mb-2" open>
-    <summary class="sidebar-group-title flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
+    <summary class="sidebar-group-title flex cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
         <span>จัดการระบบ</span>
         <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </summary>
