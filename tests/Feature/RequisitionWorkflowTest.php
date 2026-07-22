@@ -32,6 +32,8 @@ class RequisitionWorkflowTest extends TestCase
 
     private Product $wip;
 
+    private Product $fg;
+
     private function signatureData(): string
     {
         return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
@@ -48,6 +50,7 @@ class RequisitionWorkflowTest extends TestCase
         $this->part = Product::create($base + ['code' => 'NUT-14', 'name' => 'น็อต 1/4 นิ้ว', 'product_type' => ProductType::PART]);
         $this->supply = Product::create($base + ['code' => 'GLUE-01', 'name' => 'กาวสิ้นเปลือง', 'product_type' => ProductType::SUPPLY]);
         $this->wip = Product::create($base + ['code' => 'WIP-01', 'name' => 'WIP ลำโพง A', 'product_type' => ProductType::WIP]);
+        $this->fg = Product::create($base + ['code' => 'FG-01', 'name' => 'ลำโพงสำเร็จรูป A', 'product_type' => ProductType::FG]);
         $this->wip->components()->attach($this->part->id, ['quantity' => 4]);
     }
 
@@ -74,10 +77,13 @@ class RequisitionWorkflowTest extends TestCase
             ->get(route('requisitions.withdraw'))
             ->assertOk()
             ->assertSee('เบิก-จ่ายสินค้า')
-            ->assertSee('value="ISSUE_PART"', false)
-            ->assertSee('value="ISSUE_SUPPLY"', false)
-            ->assertSee('value="ISSUE_WIP"', false)
-            ->assertSee('value="ISSUE_FG"', false);
+            ->assertSee('รายการสินค้าทั้งหมด')
+            ->assertSee('จัดการ')
+            ->assertSee($this->part->code)
+            ->assertSee($this->supply->code)
+            ->assertSee($this->wip->code)
+            ->assertSee($this->fg->code)
+            ->assertSee('const isAdmin = false', false);
 
         $this->actingAs($this->staff)
             ->get(route('requisitions.production'))
@@ -91,18 +97,18 @@ class RequisitionWorkflowTest extends TestCase
             ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_PART->value]))
             ->assertOk()
             ->assertSee($this->part->code)
-            ->assertSee('value="ISSUE_PART" checked', false);
+            ->assertSee('id="request-type" value="ISSUE_PART"', false);
 
         $this->actingAs($this->staff)
             ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_SUPPLY->value]))
             ->assertOk()
             ->assertSee($this->supply->code)
-            ->assertSee('value="ISSUE_SUPPLY" checked', false);
+            ->assertSee('id="request-type" value="ISSUE_SUPPLY"', false);
 
         $this->actingAs($this->staff)
             ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_WIP->value]))
             ->assertOk()
-            ->assertSee('value="ISSUE_WIP" checked', false)
+            ->assertSee('id="request-type" value="ISSUE_WIP"', false)
             ->assertDontSee('value="GENERAL_ISSUE"', false)
             ->assertSee('วัตถุประสงค์');
 
@@ -118,7 +124,14 @@ class RequisitionWorkflowTest extends TestCase
         ]);
 
         $this->actingAs($this->staff)->get(route('requisitions.issues'))->assertForbidden();
-        $this->actingAs($this->admin)->get(route('requisitions.issues'))->assertOk()->assertSee('จ่ายสินค้า');
+        $this->actingAs($this->admin)->get(route('requisitions.withdraw'))
+            ->assertOk()
+            ->assertSee('const isAdmin = true', false);
+        $this->actingAs($this->admin)->get(route('requisitions.issues', ['product_id' => $this->wip->id]))
+            ->assertOk()
+            ->assertSee('จ่ายสินค้า')
+            ->assertSee($this->wip->code)
+            ->assertSee(RequisitionType::ISSUE_WIP->label());
     }
 
     public function test_staff_can_produce_saved_wip_and_legacy_quick_create_still_works(): void

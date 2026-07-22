@@ -31,7 +31,7 @@
         <div>
             <span class="page-kicker">{{ $isProduction ? 'เพิ่มสินค้าที่ผลิตเสร็จเข้าสต็อก' : 'สร้างใบขอเบิกจากสต็อก' }}</span>
             <h2 class="page-title">{{ $pageTitle }}</h2>
-            <p class="page-subtitle">{{ $isProduction ? 'เลือกสินค้าที่กำหนดสูตรไว้ ระบบคำนวณวัตถุดิบและรับผลผลิตเข้าสต็อกให้อัตโนมัติ' : 'เลือกประเภท สินค้า และจำนวนในหน้าเดียว จากนั้นส่งให้ Admin อนุมัติ' }}</p>
+            <p class="page-subtitle">{{ $isProduction ? 'เลือกสินค้าที่กำหนดสูตรไว้ ระบบคำนวณวัตถุดิบและรับผลผลิตเข้าสต็อกให้อัตโนมัติ' : 'ดูสินค้าทั้งหมด เลือกรายการที่ต้องการเบิก แล้วส่งให้ Admin อนุมัติ' }}</p>
         </div>
         <a href="{{ route('requisitions.index') }}" class="btn-secondary">ประวัติรายการ</a>
     </div>
@@ -44,6 +44,7 @@
                 <div class="panel-body space-y-4">
                     <div>
                         <span class="label">ประเภท *</span>
+                        @if($isProduction)
                         <div class="grid grid-cols-2 gap-2">
                             @foreach($types as $type)
                             <label class="cursor-pointer">
@@ -52,6 +53,10 @@
                             </label>
                             @endforeach
                         </div>
+                        @else
+                        <input type="hidden" name="request_type" id="request-type" value="{{ old('request_type', $selectedType->value) }}">
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3"><strong id="selected-type-label" class="block text-xs text-slate-700">เลือกสินค้าจากรายการ</strong><span class="mt-1 block text-[10px] text-slate-400">ระบบกำหนดประเภทใบเบิกตามสินค้าที่เลือก</span></div>
+                        @endif
                     </div>
                     <label><span class="label">คลังสินค้า *</span><select name="warehouse_id" id="warehouse" class="select" required><option value="">— เลือกคลัง —</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>
                     <label><span class="label">แผนก / หน่วยงาน</span><input class="input" name="department_name" value="{{ old('department_name') }}" placeholder="เช่น ฝ่ายผลิต"></label>
@@ -73,8 +78,7 @@
 
         <section class="panel min-w-0">
             <div class="panel-header">
-                <div><h3 class="section-title">{{ $isProduction ? 'ผลผลิตและสูตรที่ใช้' : 'สินค้าที่ต้องการเบิก' }}</h3><p class="section-subtitle" id="items-help"></p></div>
-                @unless($isProduction)<button type="button" id="add-item" class="btn-primary">+ เพิ่มสินค้า</button>@endunless
+                <div><h3 class="section-title">{{ $isProduction ? 'ผลผลิตและสูตรที่ใช้' : 'รายการสินค้าทั้งหมด' }}</h3><p class="section-subtitle" id="items-help"></p></div>
             </div>
             <div class="panel-body">
                 @if($isProduction)
@@ -84,9 +88,21 @@
                 </div>
                 <div id="bom-preview" class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500"></div>
                 @else
-                <div class="hidden grid-cols-[minmax(0,1fr)_150px_170px_44px] gap-3 px-3 pb-2 text-[11px] font-semibold text-slate-400 md:grid"><span>สินค้า</span><span>คงเหลือ</span><span>จำนวนเบิก</span><span></span></div>
-                <div id="item-list" class="space-y-2"></div>
-                <div id="empty-items" class="hidden rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่มีรายการ กด “+ เพิ่มสินค้า” เพื่อเริ่มต้น</div>
+                <div class="mb-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+                    <label><span class="label">ค้นหาสินค้า</span><input id="product-search" class="input" placeholder="ค้นหารหัสหรือชื่อสินค้า"></label>
+                    <label><span class="label">ประเภทสินค้า</span><select id="product-type-filter" class="select"><option value="">ทั้งหมด</option><option value="PART">PART</option><option value="SUPPLY">สิ้นเปลือง</option><option value="WIP">WIP</option><option value="FG">FG</option></select></label>
+                </div>
+                <div class="table-wrap rounded-xl border border-slate-200">
+                    <table class="data-table"><thead><tr><th>สินค้า</th><th>ประเภท</th><th class="text-right">คงเหลือ</th><th class="text-right">จัดการ</th></tr></thead><tbody id="product-catalog"></tbody></table>
+                </div>
+                <div id="catalog-empty" class="hidden rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ไม่พบสินค้าที่ค้นหา</div>
+
+                <div class="mt-6 border-t border-slate-100 pt-5">
+                    <div class="mb-3"><h4 class="text-sm font-semibold text-slate-800">รายการที่เลือกเบิก</h4><p class="text-xs text-slate-400">แก้ไขจำนวนหรือลบรายการได้ก่อนส่งคำขอ</p></div>
+                    <div class="hidden grid-cols-[minmax(0,1fr)_150px_170px_44px] gap-3 px-3 pb-2 text-[11px] font-semibold text-slate-400 md:grid"><span>สินค้า</span><span>คงเหลือ</span><span>จำนวนเบิก</span><span></span></div>
+                    <div id="item-list" class="space-y-2"></div>
+                    <div id="empty-items" class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่ได้เลือกสินค้า กด “เบิก” จากรายการด้านบน</div>
+                </div>
                 @endif
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-5 py-4">
@@ -102,19 +118,26 @@
 <script>
 const requisitionProducts = @json($productOptions);
 const requisitionMode = @json($formMode);
-const requisitionRows = @json(old('items', [['product_id' => '', 'quantity' => 1]]));
+const requisitionRows = @json(old('items', []));
 let selectedTarget = @json((string) old('target_product_id', ''));
-const typeInputs = [...document.querySelectorAll('[name="request_type"]')];
+const typeInputs = [...document.querySelectorAll('input[type="radio"][name="request_type"]')];
+const requestTypeInput = document.getElementById('request-type');
 const warehouseInput = document.getElementById('warehouse');
 const itemList = document.getElementById('item-list');
 const targetInput = document.getElementById('target-product');
+const catalogBody = document.getElementById('product-catalog');
+const searchInput = document.getElementById('product-search');
+const typeFilter = document.getElementById('product-type-filter');
+const issueQueueUrl = @json(route('requisitions.issues'));
+const isAdmin = @json(auth()->user()->isAdmin());
 
 const escapeValue = value => String(value ?? '').replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[character]));
-const selectedType = () => typeInputs.find(input => input.checked)?.value ?? (requisitionMode === 'production' ? 'BUILD_WIP' : 'ISSUE_PART');
-const stockType = () => ({ISSUE_PART:'PART', ISSUE_SUPPLY:'SUPPLY', ISSUE_WIP:'WIP', ISSUE_FG:'FG'})[selectedType()];
+const requestTypeByProduct = {PART:'ISSUE_PART', SUPPLY:'ISSUE_SUPPLY', WIP:'ISSUE_WIP', FG:'ISSUE_FG'};
+const typeLabels = {PART:'PART', SUPPLY:'สิ้นเปลือง', WIP:'WIP', FG:'FG'};
+const requestLabels = {ISSUE_PART:'เบิก PART', ISSUE_SUPPLY:'เบิกสิ้นเปลือง', ISSUE_WIP:'เบิก WIP', ISSUE_FG:'เบิก FG'};
+const selectedType = () => requestTypeInput?.value ?? typeInputs.find(input => input.checked)?.value ?? (requisitionMode === 'production' ? 'BUILD_WIP' : 'ISSUE_PART');
 const outputType = () => selectedType() === 'BUILD_WIP' ? 'WIP' : 'FG';
 const productById = id => requisitionProducts.find(product => String(product.id) === String(id));
-const productPool = () => requisitionProducts.filter(product => product.type === stockType());
 const outputPool = () => requisitionProducts.filter(product => product.type === outputType() && product.components.length);
 
 function imageFor(product) {
@@ -123,13 +146,55 @@ function imageFor(product) {
         : '<span class="grid size-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400">□</span>';
 }
 
-function productOptions(selected = '') {
-    return '<option value="">— เลือกสินค้า —</option>' + productPool().map(product => `<option value="${product.id}" ${String(product.id) === String(selected) ? 'selected' : ''}>${escapeValue(product.code)} — ${escapeValue(product.name)}</option>`).join('');
-}
-
 function balanceFor(product) {
     if (!product || !warehouseInput.value) return '—';
     return `${escapeValue(product.balances[String(warehouseInput.value)] ?? '0')} ${escapeValue(product.unit)}`;
+}
+
+function syncRequestType() {
+    if (!requestTypeInput) return;
+    const firstProduct = productById(requisitionRows[0]?.product_id);
+    requestTypeInput.value = firstProduct ? requestTypeByProduct[firstProduct.type] : 'ISSUE_PART';
+    const label = document.getElementById('selected-type-label');
+    if (label) label.textContent = firstProduct ? requestLabels[requestTypeInput.value] : 'เลือกสินค้าจากรายการ';
+}
+
+function renderCatalog() {
+    if (!catalogBody) return;
+    const keyword = String(searchInput?.value ?? '').trim().toLocaleLowerCase('th');
+    const filterType = typeFilter?.value ?? '';
+    const products = requisitionProducts.filter(product => {
+        const matchesKeyword = !keyword || `${product.code} ${product.name}`.toLocaleLowerCase('th').includes(keyword);
+        return matchesKeyword && (!filterType || product.type === filterType);
+    });
+    const selectedIds = new Set(requisitionRows.map(row => String(row.product_id)));
+
+    catalogBody.innerHTML = products.map(product => {
+        const selected = selectedIds.has(String(product.id));
+        return `<tr>
+            <td><div class="flex min-w-52 items-center gap-3">${imageFor(product)}<div><strong class="block text-xs text-slate-800">${escapeValue(product.code)}</strong><span class="text-[11px] text-slate-500">${escapeValue(product.name)}</span></div></div></td>
+            <td><span class="badge-slate">${escapeValue(typeLabels[product.type] ?? product.type)}</span></td>
+            <td class="text-right"><strong class="text-sm text-slate-800">${balanceFor(product)}</strong></td>
+            <td><div class="flex justify-end gap-2"><button type="button" class="${selected ? 'btn-secondary opacity-60' : 'btn-primary'}" data-add-product="${product.id}" ${selected ? 'disabled' : ''}>${selected ? 'เลือกแล้ว' : 'เบิก'}</button>${isAdmin ? `<a href="${issueQueueUrl}?product_id=${product.id}" class="btn-secondary">จ่าย</a>` : ''}</div></td>
+        </tr>`;
+    }).join('');
+    document.getElementById('catalog-empty')?.classList.toggle('hidden', products.length > 0);
+    catalogBody.closest('.table-wrap')?.classList.toggle('hidden', products.length === 0);
+    catalogBody.querySelectorAll('[data-add-product]').forEach(button => button.addEventListener('click', () => addProduct(button.dataset.addProduct)));
+}
+
+function addProduct(productId) {
+    const product = productById(productId);
+    if (!product || requisitionRows.some(row => String(row.product_id) === String(productId))) return;
+    const firstProduct = productById(requisitionRows[0]?.product_id);
+    if (firstProduct && firstProduct.type !== product.type) {
+        alert(`หนึ่งใบเบิกเลือกสินค้าได้ประเภทเดียวกัน กรุณาส่งใบเบิก ${typeLabels[firstProduct.type]} ก่อน`);
+        return;
+    }
+    requisitionRows.push({product_id: product.id, quantity: 1});
+    syncRequestType();
+    renderItems();
+    renderCatalog();
 }
 
 function renderItems() {
@@ -137,16 +202,20 @@ function renderItems() {
     itemList.innerHTML = requisitionRows.map((row, index) => {
         const product = productById(row.product_id);
         return `<div class="grid items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[minmax(0,1fr)_150px_170px_44px]">
-            <label><span class="label md:hidden">สินค้า</span><div class="flex items-center gap-2">${imageFor(product)}<select class="select" name="items[${index}][product_id]" data-item-product="${index}" required>${productOptions(row.product_id)}</select></div></label>
+            <div><span class="label md:hidden">สินค้า</span><input type="hidden" name="items[${index}][product_id]" value="${escapeValue(product?.id)}"><div class="flex items-center gap-2">${imageFor(product)}<div><strong class="block text-xs text-slate-800">${escapeValue(product?.code)}</strong><span class="text-[10px] text-slate-400">${escapeValue(product?.name)}</span></div></div></div>
             <div><span class="label md:hidden">คงเหลือ</span><span class="block rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">${balanceFor(product)}</span></div>
             <label><span class="label md:hidden">จำนวนเบิก</span><input class="input text-right font-semibold" name="items[${index}][quantity]" data-item-quantity="${index}" type="number" min="0.0001" step="0.0001" value="${escapeValue(row.quantity || 1)}" required></label>
             <button type="button" class="grid size-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50" data-remove-item="${index}" aria-label="ลบ">×</button>
         </div>`;
     }).join('');
     document.getElementById('empty-items')?.classList.toggle('hidden', requisitionRows.length > 0);
-    itemList.querySelectorAll('[data-item-product]').forEach(select => select.addEventListener('change', event => { requisitionRows[Number(event.target.dataset.itemProduct)].product_id = event.target.value; renderItems(); }));
     itemList.querySelectorAll('[data-item-quantity]').forEach(input => input.addEventListener('input', event => { requisitionRows[Number(event.target.dataset.itemQuantity)].quantity = event.target.value; }));
-    itemList.querySelectorAll('[data-remove-item]').forEach(button => button.addEventListener('click', () => { requisitionRows.splice(Number(button.dataset.removeItem), 1); renderItems(); }));
+    itemList.querySelectorAll('[data-remove-item]').forEach(button => button.addEventListener('click', () => {
+        requisitionRows.splice(Number(button.dataset.removeItem), 1);
+        syncRequestType();
+        renderItems();
+        renderCatalog();
+    }));
 }
 
 function renderProduction() {
@@ -171,19 +240,28 @@ function previewFormula() {
 function refreshForm(reset = false) {
     document.getElementById('items-help').textContent = requisitionMode === 'production'
         ? `${outputType()} จะถูกเพิ่มเข้าสต็อก และวัตถุดิบตามสูตรจะถูกตัดเมื่อ Admin อนุมัติ`
-        : `แสดงเฉพาะสินค้า ${stockType()} ที่พร้อมเบิก`;
+        : `แสดงสินค้า PART, สิ้นเปลือง, WIP และ FG ที่พร้อมใช้งาน`;
     if (reset) {
-        requisitionRows.splice(0, requisitionRows.length, {product_id:'', quantity:1});
+        requisitionRows.splice(0, requisitionRows.length);
         selectedTarget = '';
     }
+    syncRequestType();
     renderItems();
+    renderCatalog();
     renderProduction();
 }
 
 typeInputs.forEach(input => input.addEventListener('change', () => refreshForm(true)));
-warehouseInput.addEventListener('change', renderItems);
-document.getElementById('add-item')?.addEventListener('click', () => { requisitionRows.push({product_id:'', quantity:1}); renderItems(); });
+warehouseInput.addEventListener('change', () => { renderItems(); renderCatalog(); });
+searchInput?.addEventListener('input', renderCatalog);
+typeFilter?.addEventListener('change', renderCatalog);
 targetInput?.addEventListener('change', event => { selectedTarget = event.target.value; previewFormula(); });
+document.getElementById('requisition-form').addEventListener('submit', event => {
+    if (requisitionMode === 'withdraw' && requisitionRows.length === 0) {
+        event.preventDefault();
+        alert('กรุณาเลือกสินค้าที่ต้องการเบิกอย่างน้อย 1 รายการ');
+    }
+});
 refreshForm();
 </script>
 @endpush

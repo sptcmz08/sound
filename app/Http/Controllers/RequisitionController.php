@@ -155,14 +155,28 @@ class RequisitionController extends Controller
                 : 'บันทึกสูตรและสร้างใบเบิกแล้ว กรุณารอ Admin ตรวจสอบและอนุมัติ');
     }
 
-    public function issues()
+    public function issues(Request $request)
     {
+        $selectedProduct = null;
+        $query = Requisition::with(['requester', 'targetProduct', 'warehouse', 'items.product'])
+            ->whereIn('status', [RequisitionStatus::PENDING, RequisitionStatus::APPROVED]);
+
+        if ($request->filled('product_id')) {
+            $selectedProduct = Product::findOrFail($request->integer('product_id'));
+            $query->whereIn('request_type', [
+                RequisitionType::ISSUE_PART->value,
+                RequisitionType::ISSUE_SUPPLY->value,
+                RequisitionType::ISSUE_WIP->value,
+                RequisitionType::ISSUE_FG->value,
+            ])->whereHas('items', fn ($items) => $items->where('product_id', $selectedProduct->id));
+        }
+
         return view('requisitions.issues', [
-            'rows' => Requisition::with(['requester', 'targetProduct', 'warehouse', 'items.product'])
-                ->whereIn('status', [RequisitionStatus::PENDING, RequisitionStatus::APPROVED])
+            'rows' => $query
                 ->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")
-                ->latest()->paginate(40),
+                ->latest()->paginate(40)->withQueryString(),
             'pendingCount' => Requisition::where('status', RequisitionStatus::PENDING)->count(),
+            'selectedProduct' => $selectedProduct,
         ]);
     }
 
