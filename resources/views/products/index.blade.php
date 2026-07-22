@@ -129,8 +129,8 @@
                                     <span>รูปภาพ</span>
                                 </button>
                                 @if($p->is_active && in_array($p->product_type->value, ['PART', 'SUPPLY'], true))
-                                <button type="button" class="btn-success px-3 py-1.5 text-xs font-bold shadow-sm" data-open-receive data-product="{{ $p->id }}" data-product-name="{{ $p->code }} — {{ $p->name }}" data-unit="{{ $p->unit->name }}">
-                                    + รับเข้า
+                                <button type="button" class="btn btn-sm btn-success rounded-3 font-semibold px-3 py-1.5 shadow-sm flex items-center gap-1" data-open-receive data-bs-toggle="modal" data-bs-target="#receiveModal" data-product="{{ $p->id }}">
+                                    <i class="bi bi-plus-lg"></i> รับเข้า
                                 </button>
                                 @endif
                                 <a class="btn-secondary px-3 py-1.5 text-xs font-bold" href="{{ route('products.edit', $p) }}">แก้ไข</a>
@@ -156,69 +156,75 @@
     </div>
     <div class="mt-4">{{ $products->links() }}</div>
 
-    {{-- Receive Stock Quick Modal --}}
+    {{-- Receive Stock Quick Modal (Bootstrap 5) --}}
     @if(auth()->user()->isAdmin())
-    <dialog id="receive-dialog" class="modal-dialog w-full max-w-2xl p-0">
-        <form method="post" action="{{ route('stock.receive.store') }}" class="overflow-hidden rounded-3xl bg-white shadow-2xl">
-            @csrf
-            <div class="flex items-start justify-between border-b border-slate-100 bg-slate-50/80 px-8 py-6">
-                <div class="flex items-center gap-4">
-                    <div class="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25">
-                        <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+    <div class="modal fade" id="receiveModal" tabindex="-1" aria-labelledby="receiveModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 600px;">
+            <form method="post" action="{{ route('stock.receive.store') }}" class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                @csrf
+                <div class="modal-header bg-emerald-600 bg-gradient text-white p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="grid size-10 place-items-center rounded-xl bg-white/20 text-white">
+                            <i class="bi bi-box-arrow-in-down fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title font-bold text-white mb-0" id="receiveModalLabel">รับสินค้าเข้าสต็อก (Supplier)</h5>
+                            <small class="text-emerald-100">เลือกสินค้า คลังสินค้าปลายทาง และกรอกจำนวนที่รับจริง</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 space-y-4">
+                    <div>
+                        <label class="label">สินค้าที่ต้องการรับเข้า *</label>
+                        <select id="receive-product" class="select" name="product_id" required>
+                            <option value="">— เลือกสินค้า —</option>
+                            @foreach($receiptProducts as $p)
+                            <option value="{{ $p->id }}" data-unit="{{ $p->unit->name }}" data-image="{{ $p->image_path ? route('products.image', $p) : '' }}">
+                                {{ $p->code }} — {{ $p->name }} ({{ $p->product_type->label() }})
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div id="receive-product-preview" class="hidden items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                        <img class="size-14 rounded-xl border border-slate-200 bg-white object-cover shadow-sm" alt="รูปสินค้าที่เลือก">
+                        <div>
+                            <strong class="block text-sm text-slate-900">รูปภาพสินค้า</strong>
+                            <span class="text-xs text-slate-500">ตรวจสอบรายละเอียดสินค้าก่อนบันทึกรับเข้าคลัง</span>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="label">คลังสินค้าปลายทาง *</label>
+                            <select class="select" name="warehouse_id" required>
+                                <option value="">— เลือกคลัง —</option>
+                                @foreach($warehouses as $warehouse)
+                                <option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">จำนวนที่รับเข้าจริง *</label>
+                            <div class="relative">
+                                <input class="input pr-16" type="number" name="quantity" min="0.0001" step="0.0001" placeholder="เช่น 100" required>
+                                <span id="receive-unit" class="absolute right-4 top-3.5 font-bold text-slate-400 text-xs uppercase">หน่วย</span>
+                            </div>
+                        </div>
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">รับสินค้าเข้าสต็อก (Supplier)</h3>
-                        <p class="mt-0.5 text-xs text-slate-500">เลือกสินค้า คลังสินค้าปลายทาง และกรอกจำนวนที่รับจริง</p>
+                        <label class="label">หมายเหตุ / เลขที่ใบส่งสินค้า</label>
+                        <textarea class="input" name="note" rows="2" placeholder="ระบุเลขที่ใบส่งของ หรือรายละเอียดการรับเข้า..."></textarea>
                     </div>
                 </div>
-                <button type="button" class="rounded-2xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors" data-close-modal aria-label="ปิด">✕</button>
-            </div>
-            <div class="grid gap-5 p-8 sm:grid-cols-2">
-                <label class="sm:col-span-2">
-                    <span class="label">สินค้าที่ต้องการรับเข้า *</span>
-                    <select id="receive-product" class="select" name="product_id" required>
-                        <option value="">— เลือกสินค้า —</option>
-                        @foreach($receiptProducts as $p)
-                        <option value="{{ $p->id }}" data-unit="{{ $p->unit->name }}" data-image="{{ $p->image_path ? route('products.image', $p) : '' }}">
-                            {{ $p->code }} — {{ $p->name }} ({{ $p->product_type->label() }})
-                        </option>
-                        @endforeach
-                    </select>
-                </label>
-                <div id="receive-product-preview" class="hidden sm:col-span-2 items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <img class="size-16 rounded-2xl border border-slate-200 bg-white object-cover shadow-sm" alt="รูปสินค้าที่เลือก">
-                    <div>
-                        <strong class="block text-sm text-slate-900">รูปภาพสินค้า</strong>
-                        <span class="text-xs text-slate-500">ตรวจสอบรายละเอียดสินค้าก่อนบันทึกรับเข้าคลัง</span>
-                    </div>
+                <div class="modal-footer bg-light p-3">
+                    <button type="button" class="btn btn-secondary rounded-3 px-4 font-bold" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button class="btn btn-success rounded-3 px-4 font-bold">
+                        <i class="bi bi-check-lg me-1"></i> ยืนยันรับเข้าสต็อก
+                    </button>
                 </div>
-                <label>
-                    <span class="label">คลังสินค้าปลายทาง *</span>
-                    <select class="select" name="warehouse_id" required>
-                        <option value="">— เลือกคลัง —</option>
-                        @foreach($warehouses as $warehouse)
-                        <option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>
-                        @endforeach
-                    </select>
-                </label>
-                <label>
-                    <span class="label">จำนวนที่รับเข้าจริง *</span>
-                    <div class="relative">
-                        <input class="input pr-20" type="number" name="quantity" min="0.0001" step="0.0001" placeholder="เช่น 100" required>
-                        <span id="receive-unit" class="absolute right-4 top-3.5 font-bold text-slate-400 text-xs uppercase">หน่วย</span>
-                    </div>
-                </label>
-                <label class="sm:col-span-2">
-                    <span class="label">หมายเหตุ / เลขที่ใบส่งสินค้า</span>
-                    <textarea class="input" name="note" rows="3" placeholder="ระบุเลขที่ใบส่งของ หรือรายละเอียดการรับเข้า..."></textarea>
-                </label>
-            </div>
-            <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50/80 px-8 py-5">
-                <button type="button" class="btn-secondary" data-close-modal>ยกเลิก</button>
-                <button class="btn-success shadow-lg shadow-emerald-500/25">✓ ยืนยันรับเข้าสต็อก</button>
-            </div>
-        </form>
-    </dialog>
+            </form>
+        </div>
+    </div>
     @endif
 
     {{-- Quick Image Upload Modal (Bootstrap 5) --}}
@@ -262,20 +268,36 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const dialog = document.getElementById('receive-dialog');
-    const product = document.getElementById('receive-product');
-    const unit = document.getElementById('receive-unit');
-    const preview = document.getElementById('receive-product-preview');
-    const updateUnit = () => { const selected=product?.selectedOptions[0]; unit.textContent=selected?.dataset.unit || 'หน่วย'; const src=selected?.dataset.image; preview?.classList.toggle('hidden',!src); preview?.classList.toggle('flex',!!src); if(src) preview.querySelector('img').src=src; };
-    document.querySelectorAll('[data-open-receive]').forEach(button => button.addEventListener('click', () => {
-        if (button.dataset.product) product.value = button.dataset.product;
-        updateUnit(); dialog?.showModal();
-    }));
-    document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', () => button.closest('dialog')?.close()));
-    product?.addEventListener('change', updateUnit);
-    dialog?.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-    @if(request('receive')) dialog?.showModal(); @endif
+    // Receive Stock Modal JS
+    const receiveModalEl = document.getElementById('receiveModal');
+    if (receiveModalEl) {
+        const productSelect = document.getElementById('receive-product');
+        const unitLabel = document.getElementById('receive-unit');
+        const previewEl = document.getElementById('receive-product-preview');
+
+        const updateReceiveUnit = () => {
+            const selected = productSelect?.selectedOptions[0];
+            if (unitLabel) unitLabel.textContent = selected?.dataset.unit || 'หน่วย';
+            const src = selected?.dataset.image;
+            previewEl?.classList.toggle('hidden', !src);
+            previewEl?.classList.toggle('flex', !!src);
+            if (src && previewEl) previewEl.querySelector('img').src = src;
+        };
+
+        receiveModalEl.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const productId = button?.getAttribute('data-product');
+            if (productId && productSelect) {
+                productSelect.value = productId;
+            }
+            updateReceiveUnit();
+        });
+
+        productSelect?.addEventListener('change', updateReceiveUnit);
+        @if(request('receive'))
+        new bootstrap.Modal(receiveModalEl).show();
+        @endif
+    }
 
     // Quick Image Modal JS
     const quickImageModal = document.getElementById('quickImageModal');
