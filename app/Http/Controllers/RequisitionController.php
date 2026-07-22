@@ -44,24 +44,16 @@ class RequisitionController extends Controller
         return view('requisitions.approvals', ['rows' => Requisition::with(['requester', 'targetProduct', 'warehouse', 'items.product'])->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")->latest()->paginate(40), 'pendingCount' => Requisition::where('status', RequisitionStatus::PENDING)->count()]);
     }
 
-    public function withdraw()
+    public function withdraw(Request $request)
     {
-        return view('requisitions.menu', [
-            'mode' => 'withdraw',
-            'title' => 'เบิกสินค้า',
-            'subtitle' => 'เลือกว่าต้องการเบิกอะไร แล้วระบุรายการและจำนวนที่ต้องการ',
-            'types' => [RequisitionType::ISSUE_PART, RequisitionType::ISSUE_SUPPLY, RequisitionType::ISSUE_WIP, RequisitionType::ISSUE_FG],
-        ]);
+        $types = [RequisitionType::ISSUE_PART, RequisitionType::ISSUE_SUPPLY, RequisitionType::ISSUE_WIP, RequisitionType::ISSUE_FG];
+
+        return $this->requisitionForm($request, 'withdraw', $types);
     }
 
-    public function production()
+    public function production(Request $request)
     {
-        return view('requisitions.menu', [
-            'mode' => 'production',
-            'title' => 'ส่งเข้า WIP / FG',
-            'subtitle' => 'เลือกผลิต WIP หรือ FG ระบบจะตัดส่วนประกอบตามสูตรและเพิ่มสินค้าที่ผลิตเสร็จเข้าสต็อก',
-            'types' => [RequisitionType::BUILD_WIP, RequisitionType::BUILD_FG],
-        ]);
+        return $this->requisitionForm($request, 'production', [RequisitionType::BUILD_WIP, RequisitionType::BUILD_FG]);
     }
 
     public function createWip()
@@ -170,38 +162,31 @@ class RequisitionController extends Controller
 
     public function create(Request $request)
     {
-        if ($request->query('type') === RequisitionType::BUILD_WIP->value) {
-            return redirect()->route('requisitions.wip.create');
+        $selectedType = collect(RequisitionType::cases())->first(fn (RequisitionType $type) => $type->value === $request->query('type'));
+        if ($selectedType?->isBuild()) {
+            return $this->production($request);
         }
 
-        $selectedType = collect(RequisitionType::cases())->first(fn (RequisitionType $type) => $type->value === $request->query('type'));
-        if ($selectedType === RequisitionType::GENERAL_ISSUE) {
-            $selectedType = null;
-        }
-        $productTypes = match ($selectedType) {
-            RequisitionType::ISSUE_PART => [ProductType::PART],
-            RequisitionType::ISSUE_SUPPLY => [ProductType::SUPPLY],
-            RequisitionType::ISSUE_WIP => [ProductType::WIP],
-            RequisitionType::ISSUE_FG => [ProductType::FG],
-            RequisitionType::BUILD_FG => [ProductType::FG, ProductType::WIP, ProductType::PART],
-            default => null,
-        };
+        return $this->withdraw($request);
+    }
+
+    private function requisitionForm(Request $request, string $mode, array $types)
+    {
+        $selectedType = collect($types)->first(fn (RequisitionType $type) => $type->value === $request->query('type')) ?? $types[0];
 
         return view('requisitions.create', [
             'products' => Product::with(['unit', 'components.unit', 'balances'])->where('is_active', true)
-                ->when($productTypes, fn ($query, $types) => $query->whereIn('product_type', $types))
                 ->orderBy('code')->get(),
             'warehouses' => Warehouse::where('is_active', true)->get(),
-            'types' => $selectedType
-                ? [$selectedType]
-                : collect(RequisitionType::cases())->reject(fn (RequisitionType $type) => in_array($type, [RequisitionType::GENERAL_ISSUE, RequisitionType::BUILD_WIP], true))->all(),
+            'types' => $types,
             'selectedType' => $selectedType,
+            'formMode' => $mode,
         ]);
     }
 
     public function store(Request $request, RequisitionService $service)
     {
-        $data = $request->validate(['request_type' => ['required', Rule::enum(RequisitionType::class)], 'warehouse_id' => ['required', 'exists:warehouses,id'], 'target_product_id' => ['nullable', 'exists:products,id'], 'target_quantity' => ['nullable', 'decimal:0,4', 'gt:0'], 'purpose' => ['nullable', 'string', 'max:255'], 'items' => ['nullable', 'array'], 'items.*.product_id' => ['required_with:items', 'exists:products,id', 'distinct'], 'items.*.quantity' => ['required_with:items', 'decimal:0,4', 'gt:0']]);
+        $data = $request->validate(['request_type' => ['required', Rule::enum(RequisitionType::class)], 'warehouse_id' => ['required', 'exists:warehouses,id'], 'target_product_id' => ['nullable', 'exists:products,id'], 'target_quantity' => ['nullable', 'decimal:0,4', 'gt:0'], 'department_name' => ['nullable', 'string', 'max:255'], 'purpose' => ['nullable', 'string', 'max:255'], 'note' => ['nullable', 'string', 'max:2000'], 'items' => ['nullable', 'array'], 'items.*.product_id' => ['required_with:items', 'exists:products,id', 'distinct'], 'items.*.quantity' => ['required_with:items', 'decimal:0,4', 'gt:0']]);
         $type = RequisitionType::from($data['request_type']);
         if ($type === RequisitionType::GENERAL_ISSUE) {
             return back()->withInput()->withErrors(['request_type' => 'กรุณาเลือกเบิก PART หรือ SUPPLY แยกประเภท']);

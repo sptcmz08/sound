@@ -1,10 +1,8 @@
 @extends('layouts.app')
 
-@section('title', $selectedType?->label() ?? 'เบิกสินค้า / สร้างอุปกรณ์')
-@section('header', $selectedType?->label() ?? 'เบิกสินค้า / สร้างอุปกรณ์')
-
-@section('content')
 @php
+    $isProduction = $formMode === 'production';
+    $pageTitle = $isProduction ? 'ผลิตเข้า WIP / FG' : 'เบิก-จ่ายสินค้า';
     $productOptions = $products->map(fn ($product) => [
         'id' => $product->id,
         'code' => $product->code,
@@ -24,201 +22,168 @@
     ])->values();
 @endphp
 
-<div class="mx-auto max-w-7xl space-y-6">
-    <div>
-        <h2 class="page-title">{{ $selectedType?->label() ?? 'เลือกรายการที่ต้องการ' }}</h2>
-        <p class="page-subtitle">เลือกสินค้า ระบุจำนวนและคลัง จากนั้นกดยืนยันได้ทันที</p>
+@section('title', $pageTitle)
+@section('header', $pageTitle)
+
+@section('content')
+<div class="space-y-5">
+    <div class="page-head">
+        <div>
+            <span class="page-kicker">{{ $isProduction ? 'เพิ่มสินค้าที่ผลิตเสร็จเข้าสต็อก' : 'สร้างใบขอเบิกจากสต็อก' }}</span>
+            <h2 class="page-title">{{ $pageTitle }}</h2>
+            <p class="page-subtitle">{{ $isProduction ? 'เลือกสินค้าที่กำหนดสูตรไว้ ระบบคำนวณวัตถุดิบและรับผลผลิตเข้าสต็อกให้อัตโนมัติ' : 'เลือกประเภท สินค้า และจำนวนในหน้าเดียว จากนั้นส่งให้ Admin อนุมัติ' }}</p>
+        </div>
+        <a href="{{ route('requisitions.index') }}" class="btn-secondary">ประวัติรายการ</a>
     </div>
 
-    <form method="post" action="{{ route('requisitions.store') }}" class="space-y-6" id="req-form">
+    <form method="post" action="{{ route('requisitions.store') }}" id="requisition-form" class="grid items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
         @csrf
-
-        <section class="panel">
-            <div class="panel-header">
-                <div>
-                    <h3 class="text-xl font-bold text-slate-950">1. ประเภทรายการ</h3>
-                    @if($selectedType)
-                        <p class="mt-0.5 text-sm text-slate-500">เลือกไว้แล้ว · <a class="font-bold text-blue-600 hover:underline" href="{{ $selectedType->isBuild() ? route('requisitions.production') : route('requisitions.withdraw') }}">เปลี่ยนประเภท</a></p>
-                    @endif
-                </div>
-            </div>
-            <div class="panel-body">
-                <div class="grid gap-3 md:grid-cols-3">
-                    @foreach($types as $type)
-                    <label class="cursor-pointer">
-                        <input class="peer sr-only" type="radio" name="request_type" value="{{ $type->value }}" @checked(old('request_type', $selectedType?->value ?? 'ISSUE_PART') === $type->value)>
-                        <span class="block h-full rounded-xl border-2 border-slate-200 p-4 transition peer-checked:border-blue-600 peer-checked:bg-blue-50">
-                            <strong class="block text-lg text-slate-950">{{ $type->label() }}</strong>
-                            <small class="mt-1 block text-slate-500">{{ $type->description() }}</small>
-                        </span>
-                    </label>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-
-        <section class="panel">
-            <div class="panel-header">
-                <div><h3 class="text-xl font-bold text-slate-950">2. รายการที่ต้องการ</h3><p class="mt-0.5 text-sm text-slate-500">เลือกสินค้าและกรอกจำนวนที่ต้องการเบิก</p></div>
-                <label class="min-w-64">
-                    <span class="label text-sm">คลังสินค้า <span class="text-rose-500">*</span></span>
-                    <select name="warehouse_id" id="warehouse" class="select bg-white" required>
-                        @foreach($warehouses as $warehouse)
-                            <option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>{{ $warehouse->code }} — {{ $warehouse->name }}</option>
-                        @endforeach
-                    </select>
-                </label>
-            </div>
-
-            <div class="panel-body">
-                <div id="build-fields" class="hidden grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
-                    <label><span class="label">เลือกรายการที่จะสร้าง</span><select class="select" name="target_product_id" id="target-product"><option value="">— เลือก —</option></select></label>
-                    <label><span class="label">จำนวนที่จะสร้าง</span><input class="input text-lg font-bold" name="target_quantity" type="number" min="0.0001" step="0.0001" value="{{ old('target_quantity', 1) }}"></label>
-                    <div id="bom-preview" class="rounded-xl bg-amber-50 p-4 text-amber-900 md:col-span-2"></div>
-                </div>
-
-                <div id="direct-fields">
-                    <div class="mb-2 hidden grid-cols-[minmax(0,1fr)_160px_190px_64px] gap-3 px-3 text-sm font-bold text-slate-500 md:grid">
-                        <span>สินค้า</span><span>สต็อกคงเหลือ</span><span>จำนวนที่เบิก</span><span></span>
+        <aside class="space-y-4">
+            <section class="panel">
+                <div class="panel-header"><div><h3 class="section-title">ข้อมูลรายการ</h3><p class="section-subtitle">กรอกข้อมูลหลักให้ครบ</p></div></div>
+                <div class="panel-body space-y-4">
+                    <div>
+                        <span class="label">ประเภท *</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            @foreach($types as $type)
+                            <label class="cursor-pointer">
+                                <input class="peer sr-only" type="radio" name="request_type" value="{{ $type->value }}" @checked(old('request_type', $selectedType->value) === $type->value)>
+                                <span class="block rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-xs font-semibold text-slate-600 transition peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700">{{ $type->label() }}</span>
+                            </label>
+                            @endforeach
+                        </div>
                     </div>
-                    <div id="item-list" class="space-y-3"></div>
-                    <button type="button" id="add-item" class="btn-secondary mt-4">
-                        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
-                        เพิ่มรายการเบิก
-                    </button>
+                    <label><span class="label">คลังสินค้า *</span><select name="warehouse_id" id="warehouse" class="select" required><option value="">— เลือกคลัง —</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>
+                    <label><span class="label">แผนก / หน่วยงาน</span><input class="input" name="department_name" value="{{ old('department_name') }}" placeholder="เช่น ฝ่ายผลิต"></label>
+                    <label><span class="label">วัตถุประสงค์</span><input class="input" name="purpose" value="{{ old('purpose') }}" placeholder="ระบบจะใช้ชื่อประเภทหากไม่ระบุ"></label>
+                    <label><span class="label">หมายเหตุ</span><textarea class="input" name="note" rows="3" placeholder="รายละเอียดเพิ่มเติม">{{ old('note') }}</textarea></label>
                 </div>
+            </section>
+
+            <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs leading-5 text-blue-800">
+                @if(auth()->user()->isAdmin())
+                    <strong class="block">Admin ทำรายการ</strong>
+                    ระบบจะอนุมัติและปรับสต็อกทันทีหลังบันทึก
+                @else
+                    <strong class="block">ขั้นตอนหลังส่งคำขอ</strong>
+                    Admin อนุมัติ → ระบบปรับสต็อก → พนักงานลงนาม → ดาวน์โหลด PDF
+                @endif
+            </div>
+        </aside>
+
+        <section class="panel min-w-0">
+            <div class="panel-header">
+                <div><h3 class="section-title">{{ $isProduction ? 'ผลผลิตและสูตรที่ใช้' : 'สินค้าที่ต้องการเบิก' }}</h3><p class="section-subtitle" id="items-help"></p></div>
+                @unless($isProduction)<button type="button" id="add-item" class="btn-primary">+ เพิ่มสินค้า</button>@endunless
+            </div>
+            <div class="panel-body">
+                @if($isProduction)
+                <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
+                    <label><span class="label">สินค้าที่ผลิต *</span><select class="select" name="target_product_id" id="target-product" required><option value="">— เลือกสินค้าที่มีสูตร —</option></select></label>
+                    <label><span class="label">จำนวนที่ผลิต *</span><input class="input text-right font-semibold" name="target_quantity" id="target-quantity" type="number" min="0.0001" step="0.0001" value="{{ old('target_quantity', 1) }}" required></label>
+                </div>
+                <div id="bom-preview" class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500"></div>
+                @else
+                <div class="hidden grid-cols-[minmax(0,1fr)_150px_170px_44px] gap-3 px-3 pb-2 text-[11px] font-semibold text-slate-400 md:grid"><span>สินค้า</span><span>คงเหลือ</span><span>จำนวนเบิก</span><span></span></div>
+                <div id="item-list" class="space-y-2"></div>
+                <div id="empty-items" class="hidden rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่มีรายการ กด “+ เพิ่มสินค้า” เพื่อเริ่มต้น</div>
+                @endif
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-5 py-4">
+                <p class="text-xs text-slate-500">ตรวจสอบสินค้า คลัง และจำนวนก่อนยืนยัน</p>
+                <button class="btn-primary px-6">{{ $isProduction ? 'ยืนยันการผลิต' : 'ส่งคำขอเบิก' }}</button>
             </div>
         </section>
-
-        <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p class="text-sm text-slate-500">หลังยืนยัน รายการจะส่งให้แอดมินตรวจและอนุมัติก่อนตัดสต็อก</p>
-            <button class="btn-primary px-8">
-                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 13 4 4L19 7"/></svg>
-                ยืนยันรายการ
-            </button>
-        </div>
     </form>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-const products = @json($productOptions);
-let rows = @json(old('items', [['product_id' => '', 'quantity' => 1]]));
-const radios = [...document.querySelectorAll('[name=request_type]')];
-const list = document.getElementById('item-list');
-const target = document.getElementById('target-product');
-const warehouse = document.getElementById('warehouse');
+const requisitionProducts = @json($productOptions);
+const requisitionMode = @json($formMode);
+const requisitionRows = @json(old('items', [['product_id' => '', 'quantity' => 1]]));
+let selectedTarget = @json((string) old('target_product_id', ''));
+const typeInputs = [...document.querySelectorAll('[name="request_type"]')];
+const warehouseInput = document.getElementById('warehouse');
+const itemList = document.getElementById('item-list');
+const targetInput = document.getElementById('target-product');
 
-function escapeHtml(value) {
-    return String(value).replace(/[&<>'"]/g, character => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
-    })[character]);
+const escapeValue = value => String(value ?? '').replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[character]));
+const selectedType = () => typeInputs.find(input => input.checked)?.value ?? (requisitionMode === 'production' ? 'BUILD_WIP' : 'ISSUE_PART');
+const stockType = () => ({ISSUE_PART:'PART', ISSUE_SUPPLY:'SUPPLY', ISSUE_WIP:'WIP', ISSUE_FG:'FG'})[selectedType()];
+const outputType = () => selectedType() === 'BUILD_WIP' ? 'WIP' : 'FG';
+const productById = id => requisitionProducts.find(product => String(product.id) === String(id));
+const productPool = () => requisitionProducts.filter(product => product.type === stockType());
+const outputPool = () => requisitionProducts.filter(product => product.type === outputType() && product.components.length);
+
+function imageFor(product) {
+    return product?.image
+        ? `<img src="${product.image}" class="size-10 shrink-0 rounded-lg border border-slate-200 bg-white object-cover" alt="">`
+        : '<span class="grid size-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400">□</span>';
 }
 
-function current() {
-    return radios.find(radio => radio.checked)?.value ?? 'ISSUE_PART';
+function productOptions(selected = '') {
+    return '<option value="">— เลือกสินค้า —</option>' + productPool().map(product => `<option value="${product.id}" ${String(product.id) === String(selected) ? 'selected' : ''}>${escapeValue(product.code)} — ${escapeValue(product.name)}</option>`).join('');
 }
 
-function isBuild() {
-    return ['BUILD_WIP', 'BUILD_FG'].includes(current());
+function balanceFor(product) {
+    if (!product || !warehouseInput.value) return '—';
+    return `${escapeValue(product.balances[String(warehouseInput.value)] ?? '0')} ${escapeValue(product.unit)}`;
 }
 
-function wantedType() {
-    return {
-        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_PART: ['PART'], ISSUE_SUPPLY: ['SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
-        BUILD_WIP: ['WIP'], BUILD_FG: ['FG']
-    }[current()];
+function renderItems() {
+    if (!itemList) return;
+    itemList.innerHTML = requisitionRows.map((row, index) => {
+        const product = productById(row.product_id);
+        return `<div class="grid items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[minmax(0,1fr)_150px_170px_44px]">
+            <label><span class="label md:hidden">สินค้า</span><div class="flex items-center gap-2">${imageFor(product)}<select class="select" name="items[${index}][product_id]" data-item-product="${index}" required>${productOptions(row.product_id)}</select></div></label>
+            <div><span class="label md:hidden">คงเหลือ</span><span class="block rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">${balanceFor(product)}</span></div>
+            <label><span class="label md:hidden">จำนวนเบิก</span><input class="input text-right font-semibold" name="items[${index}][quantity]" data-item-quantity="${index}" type="number" min="0.0001" step="0.0001" value="${escapeValue(row.quantity || 1)}" required></label>
+            <button type="button" class="grid size-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50" data-remove-item="${index}" aria-label="ลบ">×</button>
+        </div>`;
+    }).join('');
+    document.getElementById('empty-items')?.classList.toggle('hidden', requisitionRows.length > 0);
+    itemList.querySelectorAll('[data-item-product]').forEach(select => select.addEventListener('change', event => { requisitionRows[Number(event.target.dataset.itemProduct)].product_id = event.target.value; renderItems(); }));
+    itemList.querySelectorAll('[data-item-quantity]').forEach(input => input.addEventListener('input', event => { requisitionRows[Number(event.target.dataset.itemQuantity)].quantity = event.target.value; }));
+    itemList.querySelectorAll('[data-remove-item]').forEach(button => button.addEventListener('click', () => { requisitionRows.splice(Number(button.dataset.removeItem), 1); renderItems(); }));
 }
 
-function componentTypes() {
-    return {
-        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_PART: ['PART'], ISSUE_SUPPLY: ['SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
-        BUILD_WIP: ['PART'], BUILD_FG: ['WIP', 'PART']
-    }[current()];
+function renderProduction() {
+    if (!targetInput) return;
+    const options = outputPool();
+    targetInput.innerHTML = '<option value="">— เลือกสินค้าที่มีสูตร —</option>' + options.map(product => `<option value="${product.id}">${escapeValue(product.code)} — ${escapeValue(product.name)}</option>`).join('');
+    if (options.some(product => String(product.id) === selectedTarget)) targetInput.value = selectedTarget;
+    previewFormula();
 }
 
-function matchingProducts() {
-    const types = wantedType();
-    return products.filter(product => types.includes(product.type));
+function previewFormula() {
+    if (!targetInput) return;
+    const product = productById(targetInput.value);
+    const preview = document.getElementById('bom-preview');
+    if (!product) {
+        preview.innerHTML = `ยังไม่มี ${outputType()} ที่กำหนดสูตรไว้ กรุณาเพิ่มหรือแก้ไขสูตรจากเมนู “เพิ่มรายการสินค้า”`;
+        return;
+    }
+    preview.innerHTML = `<div class="flex items-start gap-3">${imageFor(product)}<div><strong class="block text-slate-800">${escapeValue(product.code)} — ${escapeValue(product.name)}</strong><p class="mt-1 text-xs text-slate-500">ใช้ต่อ 1 ชิ้น: ${product.components.map(component => `${escapeValue(component.code)} ${escapeValue(component.name)} × ${escapeValue(component.quantity)} ${escapeValue(component.unit)}`).join(' · ')}</p></div></div>`;
 }
 
-function componentProducts() {
-    const types = componentTypes();
-    return products.filter(product => types.includes(product.type));
+function refreshForm(reset = false) {
+    document.getElementById('items-help').textContent = requisitionMode === 'production'
+        ? `${outputType()} จะถูกเพิ่มเข้าสต็อก และวัตถุดิบตามสูตรจะถูกตัดเมื่อ Admin อนุมัติ`
+        : `แสดงเฉพาะสินค้า ${stockType()} ที่พร้อมเบิก`;
+    if (reset) {
+        requisitionRows.splice(0, requisitionRows.length, {product_id:'', quantity:1});
+        selectedTarget = '';
+    }
+    renderItems();
+    renderProduction();
 }
 
-function directOptions(selected) {
-    const pool = isBuild() ? componentProducts() : matchingProducts();
-    return '<option value="">— เลือกสินค้า —</option>' + pool.map(product =>
-        `<option value="${product.id}" ${String(product.id) === String(selected) ? 'selected' : ''}>[${escapeHtml(product.type)}] ${escapeHtml(product.code)} — ${escapeHtml(product.name)}</option>`
-    ).join('');
-}
-
-function balanceFor(productId) {
-    const product = products.find(item => String(item.id) === String(productId));
-    if (!product) return '<span class="text-slate-400">—</span>';
-    const balance = product.balances[String(warehouse.value)] ?? '0';
-    return `<strong class="text-lg text-slate-950">${escapeHtml(balance)}</strong> <span class="text-sm text-slate-500">${escapeHtml(product.unit)}</span>`;
-}
-
-function productPicture(productId) {
-    const product = products.find(item => String(item.id) === String(productId));
-    return product?.image ? `<img src="${product.image}" class="size-12 shrink-0 rounded-xl border border-slate-200 bg-white object-cover" alt="รูปสินค้า">` : `<span class="grid size-12 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-slate-400">▧</span>`;
-}
-
-function renderRows() {
-    list.innerHTML = rows.map((row, index) => `
-        <div class="grid items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 md:grid-cols-[minmax(0,1fr)_160px_190px_64px]">
-            <label><span class="label md:hidden">สินค้า</span><div class="flex items-center gap-3">${productPicture(row.product_id)}<select class="select bg-white" name="items[${index}][product_id]" onchange="updateProduct(${index}, this.value)" required>${directOptions(row.product_id)}</select></div></label>
-            <div><span class="label md:hidden">สต็อกคงเหลือ</span><div class="rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">${balanceFor(row.product_id)}</div></div>
-            <label><span class="label md:hidden">จำนวนที่เบิก</span><input class="input bg-white text-lg font-bold" name="items[${index}][quantity]" type="number" min="0.0001" step="0.0001" value="${escapeHtml(row.quantity || 1)}" oninput="updateQuantity(${index}, this.value)" required></label>
-            <button type="button" class="grid min-h-12 place-items-center rounded-xl text-rose-600 hover:bg-rose-50" onclick="removeRow(${index})" title="ลบรายการ" aria-label="ลบรายการ"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7h12m-9 0V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg></button>
-        </div>
-    `).join('');
-}
-
-function updateProduct(index, productId) {
-    rows[index].product_id = productId;
-    renderRows();
-}
-
-function updateQuantity(index, quantity) {
-    rows[index].quantity = quantity;
-}
-
-function removeRow(index) {
-    rows.splice(index, 1);
-    renderRows();
-}
-
-function render() {
-    document.getElementById('build-fields').classList.toggle('hidden', !isBuild());
-    document.getElementById('direct-fields').classList.toggle('hidden', isBuild());
-    target.innerHTML = '<option value="">— เลือกรายการ —</option>' + matchingProducts()
-        .filter(product => product.components.length)
-        .map(product => `<option value="${product.id}">[${escapeHtml(product.code)}] ${escapeHtml(product.name)}</option>`).join('');
-    renderRows();
-    preview();
-}
-
-function preview() {
-    const product = products.find(item => String(item.id) === target.value);
-    document.getElementById('bom-preview').innerHTML = product
-        ? `<div class="flex items-center gap-3">${productPicture(product.id)}<div><strong class="block">${escapeHtml(product.code)} — ${escapeHtml(product.name)}</strong><span>ส่วนประกอบต่อ 1 ชิ้น: ${product.components.map(component => `${escapeHtml(component.code)} ${escapeHtml(component.name)} × ${escapeHtml(component.quantity)} ${escapeHtml(component.unit)}`).join(', ')}</span></div></div>`
-        : 'กรุณาเลือกรายการ ระบบจะแสดงส่วนประกอบที่ต้องใช้ตรงนี้';
-}
-
-radios.forEach(radio => radio.addEventListener('change', () => {
-    rows = [{ product_id: '', quantity: 1 }];
-    render();
-}));
-document.getElementById('add-item').addEventListener('click', () => {
-    rows.push({ product_id: '', quantity: 1 });
-    renderRows();
-});
-warehouse.addEventListener('change', renderRows);
-target.addEventListener('change', preview);
-render();
+typeInputs.forEach(input => input.addEventListener('change', () => refreshForm(true)));
+warehouseInput.addEventListener('change', renderItems);
+document.getElementById('add-item')?.addEventListener('click', () => { requisitionRows.push({product_id:'', quantity:1}); renderItems(); });
+targetInput?.addEventListener('change', event => { selectedTarget = event.target.value; previewFormula(); });
+refreshForm();
 </script>
 @endpush
