@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 // ──────────────────────────────────────────────
 // Dev-Tools: /dev-tools?key=sound2026!
 // ──────────────────────────────────────────────
+if (app()->environment('local')) {
 Route::prefix('dev-tools')->group(function () {
     $guard = function (Request $request) {
         if ($request->query('key') !== 'sound2026!') {
@@ -70,6 +71,7 @@ Route::prefix('dev-tools')->group(function () {
         }
     });
 });
+}
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'show'])->name('login');

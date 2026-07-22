@@ -104,10 +104,9 @@
         </section>
         </div>
 
-        <div class="flex justify-end">
-            <button class="{{ $config['direction']==='in' ? 'btn-success' : 'btn-primary' }} px-6">
-                ✓ ยืนยัน{{ $config['title'] }}
-            </button>
+        <div class="panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+            <div class="flex items-center gap-6 text-xs text-slate-500"><span>จำนวนรายการ <strong id="summary-lines" class="ml-1 text-base text-slate-900">0</strong></span>@if($config['price_input'])<span>ยอดรวม <strong id="summary-total" class="ml-1 text-lg text-blue-700">฿0.00</strong></span>@endif</div>
+            <button class="{{ $config['direction']==='in' ? 'btn-success' : 'btn-primary' }} px-6">ยืนยัน{{ $config['title'] }}</button>
         </div>
     </form>
 </div>
@@ -123,9 +122,10 @@ const hasCost = @json($config['cost_input']);
 const hasPrice = @json($config['price_input']);
 const optionsEnabled = @json($operation === 'sale');
 let operationIndex = 0;
+const escapeOperation = value => String(value ?? '').replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[character]));
 
 function productOptions(selected='') {
-    return '<option value="">— เลือกสินค้า —</option>'+operationProducts.map(product => `<option value="${product.id}" ${String(selected)===String(product.id)?'selected':''}>[${product.type}] ${product.code} — ${product.name}</option>`).join('');
+    return '<option value="">— เลือกสินค้า —</option>'+operationProducts.map(product => `<option value="${product.id}" ${String(selected)===String(product.id)?'selected':''}>[${escapeOperation(product.type)}] ${escapeOperation(product.code)} — ${escapeOperation(product.name)}</option>`).join('');
 }
 function currentProduct(row) { return operationProducts.find(product => String(product.id)===String(row.querySelector('.product-select').value)); }
 
@@ -163,12 +163,12 @@ function renderRowOptions(row, index) {
             const priceLabel = Number(item.additional_price) > 0 ? ` (+${Number(item.additional_price).toLocaleString()} ฿)` : '';
             const isSelected = hasSelected ? (String(savedValue) === String(item.id)) : item.is_default;
             const selectedAttr = isSelected ? 'selected' : '';
-            return `<option value="${item.id}" data-price="${item.additional_price}" ${selectedAttr}>${item.name} (${item.code}) [คงเหลือ: ${balance}]${priceLabel}</option>`;
+            return `<option value="${item.id}" data-price="${item.additional_price}" ${selectedAttr}>${escapeOperation(item.name)} (${escapeOperation(item.code)}) [คงเหลือ: ${escapeOperation(balance)}]${priceLabel}</option>`;
         }).join('');
         
         return `
             <div class="flex items-center gap-2 mt-1">
-                <span class="text-xs font-semibold text-slate-600 min-w-24">${group.name}:</span>
+                <span class="text-xs font-semibold text-slate-600 min-w-24">${escapeOperation(group.name)}:</span>
                 <select class="select text-xs p-1 h-8 option-select flex-1" name="items[${index}][options][${gIdx}][product_option_item_id]" ${requiredAttr}>
                     ${defaultOption}
                     ${optionsHtml}
@@ -217,6 +217,15 @@ function refreshTotal(row) {
     const total=row.querySelector('.line-total'); if(!total)return;
     const quantity=Number(row.querySelector('.quantity').value||0), price=Number(row.querySelector('.unit-price').value||0);
     total.textContent=(quantity*price).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+    refreshSummary();
+}
+function refreshSummary() {
+    document.getElementById('summary-lines').textContent=operationRows.children.length;
+    const totalElement=document.getElementById('summary-total');
+    if(totalElement){
+        const total=[...operationRows.children].reduce((sum,row)=>sum+(Number(row.querySelector('.quantity')?.value||0)*Number(row.querySelector('.unit-price')?.value||0)),0);
+        totalElement.textContent=`฿${total.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    }
 }
 function addOperationRow() {
     const row=document.createElement('tr'), index=operationIndex++;
@@ -225,12 +234,12 @@ function addOperationRow() {
         <select class="select product-select" name="items[${index}][product_id]" required>${productOptions()}</select>
         <div class="options-container hidden"></div>
     </td><td><span class="product-type badge-slate">—</span></td><td class="product-balance text-right font-bold">—</td><td><input class="input quantity" type="number" min="0.0001" step="0.0001" name="items[${index}][quantity]" value="1" required></td>${hasCost?`<td><input class="input unit-cost" type="number" min="0" step="0.0001" name="items[${index}][unit_cost]" value="0" required></td>`:''}${hasPrice?`<td><input class="input unit-price" type="number" min="0" step="0.0001" name="items[${index}][unit_price]" value="0" required></td><td class="line-total text-right font-bold">0.00</td>`:''}<td><button type="button" class="rounded-lg p-2 text-rose-600 hover:bg-rose-50" aria-label="ลบรายการ">✕</button></td>`;
-    operationRows.appendChild(row); operationEmpty.classList.add('hidden');
+    operationRows.appendChild(row); operationEmpty.classList.add('hidden'); refreshSummary();
     row.querySelector('.product-select').addEventListener('change',()=>refreshRow(row));
     row.querySelector('.quantity').addEventListener('input',()=>refreshTotal(row));
     row.querySelector('.unit-cost')?.addEventListener('input',event=>event.target.dataset.edited='1');
     row.querySelector('.unit-price')?.addEventListener('input',event=>{event.target.dataset.edited='1';refreshTotal(row)});
-    row.querySelector('button').addEventListener('click',()=>{row.remove();operationEmpty.classList.toggle('hidden',operationRows.children.length>0)});
+    row.querySelector('button').addEventListener('click',()=>{row.remove();operationEmpty.classList.toggle('hidden',operationRows.children.length>0);refreshSummary()});
     row.querySelector('.product-select').focus();
 }
 document.getElementById('add-item').addEventListener('click',addOperationRow);

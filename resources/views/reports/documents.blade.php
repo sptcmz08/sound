@@ -16,7 +16,7 @@
             <div class="text-right"><span class="badge-slate">{{$document->document_type->label()}}</span><p class="mt-2 text-sm text-slate-500">{{$document->contact_name ?: '—'}}</p></div>
         </div>
         <div class="table-wrap"><table class="data-table"><thead><tr><th>สินค้า</th><th>ประเภท</th><th class="text-right">จำนวน</th><th class="text-right">มูลค่า</th></tr></thead><tbody>
-        @foreach($document->items as $item)<tr><td><strong>{{$item->product->code}}</strong><span class="ml-2 text-slate-500">{{$item->product->name}}</span></td><td>{{$item->product->product_type->value}}</td><td class="text-right">{{\App\Support\Quantity::format($item->quantity)}} {{$item->product->unit->name}}</td><td class="text-right">{{number_format((float)$item->quantity*(float)$item->unit_price,2)}}</td></tr>@endforeach
+        @foreach($document->items as $item) @php($lineValue=(float)$item->quantity*(float)($document->document_type->value==='SALE_OUT'?$item->unit_price:$item->unit_cost))<tr><td><strong>{{$item->product->code}}</strong><span class="ml-2 text-slate-500">{{$item->product->name}}</span></td><td>{{$item->product->product_type->value}}</td><td class="text-right">{{\App\Support\Quantity::format($item->quantity)}} {{$item->product->unit->name}}</td><td class="text-right">{{number_format($lineValue,2)}}</td></tr>@endforeach
         </tbody></table></div>
         @if($document->note)<div class="border-t border-slate-100 px-5 py-3 text-sm text-slate-600">{{$document->note}}</div>@endif
     </article>
