@@ -229,14 +229,14 @@ class RequisitionWorkflowTest extends TestCase
         $this->assertNull($requisition->approval_signature);
         $this->assertSame('16', StockBalance::where('product_id', $this->part->id)->firstOrFail()->quantity);
         $this->assertSame('2', StockBalance::where('product_id', $product->id)->firstOrFail()->quantity);
-        $response->assertRedirect(route('requisitions.index', ['focus' => $requisition->id]));
+        $response->assertRedirect(route('requisitions.show', $requisition));
 
-        $this->actingAs($this->admin)->get(route('requisitions.index', ['focus' => $requisition->id]))
+        $this->actingAs($this->admin)->get(route('requisitions.index'))
             ->assertOk()
             ->assertSee('รายการเบิกและผลิต')
             ->assertSee('อนุมัติแล้ว')
             ->assertSee('สร้างโดย Admin')
-            ->assertSee('data-open-process', false)
+            ->assertDontSee('data-open-process', false)
             ->assertSee('ดาวน์โหลด PDF');
 
         $this->actingAs($this->admin)->get(route('requisitions.show', $requisition))

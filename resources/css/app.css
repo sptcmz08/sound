@@ -89,8 +89,9 @@ a.btn-primary, a.btn-success, a.btn-danger,
 a.btn-primary:hover, a.btn-success:hover, a.btn-danger:hover { color: #fff !important; }
 a.btn-secondary, a.btn-secondary:hover { color: #475569 !important; }
 
-dialog.native-modal::backdrop { background: rgb(15 23 42 / .35); backdrop-filter: blur(4px); }
-dialog.native-modal[open] { animation: modal-in .18s ease-out; }
+dialog { margin: auto; border: 0; }
+dialog::backdrop { background: rgb(15 23 42 / .35); backdrop-filter: blur(4px); }
+dialog[open] { animation: modal-in .18s ease-out; }
 @keyframes modal-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 .scrollbar-thin::-webkit-scrollbar, .table-wrap::-webkit-scrollbar { height: 5px; width: 5px; }

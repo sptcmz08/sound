@@ -34,7 +34,13 @@ class RequisitionController extends Controller
         $statusCounts = [
             'pending' => (clone $query)->where('status', RequisitionStatus::PENDING)->count(),
             'approved' => (clone $query)->where('status', RequisitionStatus::APPROVED)->count(),
+            'rejected' => (clone $query)->where('status', RequisitionStatus::REJECTED)->count(),
         ];
+
+        $status = strtoupper((string) $request->query('status'));
+        if (in_array($status, array_column(RequisitionStatus::cases(), 'value'), true)) {
+            $query->where('status', $status);
+        }
 
         return view('requisitions.index', ['rows' => $query->paginate(30), 'statusCounts' => $statusCounts]);
     }
@@ -143,7 +149,7 @@ class RequisitionController extends Controller
                 : $requisition;
         });
 
-        return redirect()->route('requisitions.index', ['focus' => $requisition->id])
+        return redirect()->route('requisitions.show', $requisition)
             ->with('success', $request->user()->isAdmin()
                 ? 'บันทึกสูตร ผลิต WIP และปรับสต็อกเรียบร้อยแล้ว'
                 : 'บันทึกสูตรและสร้างใบเบิกแล้ว กรุณารอ Admin ตรวจสอบและอนุมัติ');
@@ -206,7 +212,7 @@ class RequisitionController extends Controller
                 : $requisition;
         });
 
-        return redirect()->route('requisitions.index', ['focus' => $requisition->id])->with('success', $request->user()->isAdmin()
+        return redirect()->route('requisitions.show', $requisition)->with('success', $request->user()->isAdmin()
             ? 'บันทึก อนุมัติ และปรับสต็อกเรียบร้อยแล้ว'
             : 'สร้างใบเบิกแล้ว กรุณารอ Admin ตรวจสอบและอนุมัติ');
     }
