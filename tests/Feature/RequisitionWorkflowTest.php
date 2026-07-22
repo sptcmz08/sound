@@ -83,6 +83,10 @@ class RequisitionWorkflowTest extends TestCase
             ->assertSee($this->supply->code)
             ->assertSee($this->wip->code)
             ->assertSee($this->fg->code)
+            ->assertSee('id="open-requisition-cart"', false)
+            ->assertSee('id="requisition-cart"', false)
+            ->assertDontSee('ข้อมูลรายการ')
+            ->assertDontSee('Admin ทำรายการ')
             ->assertSee('const isAdmin = false', false);
 
         $this->actingAs($this->staff)
@@ -126,6 +130,7 @@ class RequisitionWorkflowTest extends TestCase
         $this->actingAs($this->staff)->get(route('requisitions.issues'))->assertForbidden();
         $this->actingAs($this->admin)->get(route('requisitions.withdraw'))
             ->assertOk()
+            ->assertDontSee('Admin ทำรายการ')
             ->assertSee('const isAdmin = true', false);
         $this->actingAs($this->admin)->get(route('requisitions.issues', ['product_id' => $this->wip->id]))
             ->assertOk()

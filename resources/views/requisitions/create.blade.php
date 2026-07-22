@@ -33,18 +33,18 @@
             <h2 class="page-title">{{ $pageTitle }}</h2>
             <p class="page-subtitle">{{ $isProduction ? 'เลือกสินค้าที่กำหนดสูตรไว้ ระบบคำนวณวัตถุดิบและรับผลผลิตเข้าสต็อกให้อัตโนมัติ' : 'ดูสินค้าทั้งหมด เลือกรายการที่ต้องการเบิก แล้วส่งให้ Admin อนุมัติ' }}</p>
         </div>
-        <a href="{{ route('requisitions.index') }}" class="btn-secondary">ประวัติรายการ</a>
+        <div class="flex gap-2"><a href="{{ route('requisitions.index') }}" class="btn-secondary">ประวัติรายการ</a>@unless($isProduction)<button type="button" id="open-requisition-cart" class="btn-primary">รายการเบิก <span id="cart-count" class="ml-1 rounded-full bg-white/20 px-2 py-0.5">0</span></button>@endunless</div>
     </div>
 
-    <form method="post" action="{{ route('requisitions.store') }}" id="requisition-form" class="grid items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+    <form method="post" action="{{ route('requisitions.store') }}" id="requisition-form" class="{{ $isProduction ? 'grid items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)]' : 'space-y-4' }}">
         @csrf
+        @if($isProduction)
         <aside class="space-y-4">
             <section class="panel">
                 <div class="panel-header"><div><h3 class="section-title">ข้อมูลรายการ</h3><p class="section-subtitle">กรอกข้อมูลหลักให้ครบ</p></div></div>
                 <div class="panel-body space-y-4">
                     <div>
                         <span class="label">ประเภท *</span>
-                        @if($isProduction)
                         <div class="grid grid-cols-2 gap-2">
                             @foreach($types as $type)
                             <label class="cursor-pointer">
@@ -53,12 +53,8 @@
                             </label>
                             @endforeach
                         </div>
-                        @else
-                        <input type="hidden" name="request_type" id="request-type" value="{{ old('request_type', $selectedType->value) }}">
-                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3"><strong id="selected-type-label" class="block text-xs text-slate-700">เลือกสินค้าจากรายการ</strong><span class="mt-1 block text-[10px] text-slate-400">ระบบกำหนดประเภทใบเบิกตามสินค้าที่เลือก</span></div>
-                        @endif
                     </div>
-                    <label><span class="label">คลังสินค้า *</span><select name="warehouse_id" id="warehouse" class="select" required><option value="">— เลือกคลัง —</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>
+                    <label><span class="label">คลังสินค้า *</span><select name="warehouse_id" id="warehouse" class="select" required><option value="">— เลือกคลัง —</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected((string) old('warehouse_id', $warehouses->first()?->id) === (string) $warehouse->id)>{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>
                     <label><span class="label">แผนก / หน่วยงาน</span><input class="input" name="department_name" value="{{ old('department_name') }}" placeholder="เช่น ฝ่ายผลิต"></label>
                     <label><span class="label">วัตถุประสงค์</span><input class="input" name="purpose" value="{{ old('purpose') }}" placeholder="ระบบจะใช้ชื่อประเภทหากไม่ระบุ"></label>
                     <label><span class="label">หมายเหตุ</span><textarea class="input" name="note" rows="3" placeholder="รายละเอียดเพิ่มเติม">{{ old('note') }}</textarea></label>
@@ -75,6 +71,9 @@
                 @endif
             </div>
         </aside>
+        @else
+        <input type="hidden" name="request_type" id="request-type" value="{{ old('request_type', $selectedType->value) }}">
+        @endif
 
         <section class="panel min-w-0">
             <div class="panel-header">
@@ -88,28 +87,40 @@
                 </div>
                 <div id="bom-preview" class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500"></div>
                 @else
-                <div class="mb-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+                <div class="mb-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_240px]">
                     <label><span class="label">ค้นหาสินค้า</span><input id="product-search" class="input" placeholder="ค้นหารหัสหรือชื่อสินค้า"></label>
                     <label><span class="label">ประเภทสินค้า</span><select id="product-type-filter" class="select"><option value="">ทั้งหมด</option><option value="PART">PART</option><option value="SUPPLY">สิ้นเปลือง</option><option value="WIP">WIP</option><option value="FG">FG</option></select></label>
+                    <label><span class="label">คลังสินค้า</span><select name="warehouse_id" id="warehouse" class="select" required>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected((string) old('warehouse_id', $warehouses->first()?->id) === (string) $warehouse->id)>{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>
                 </div>
                 <div class="table-wrap rounded-xl border border-slate-200">
                     <table class="data-table"><thead><tr><th>สินค้า</th><th>ประเภท</th><th class="text-right">คงเหลือ</th><th class="text-right">จัดการ</th></tr></thead><tbody id="product-catalog"></tbody></table>
                 </div>
                 <div id="catalog-empty" class="hidden rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ไม่พบสินค้าที่ค้นหา</div>
-
-                <div class="mt-6 border-t border-slate-100 pt-5">
-                    <div class="mb-3"><h4 class="text-sm font-semibold text-slate-800">รายการที่เลือกเบิก</h4><p class="text-xs text-slate-400">แก้ไขจำนวนหรือลบรายการได้ก่อนส่งคำขอ</p></div>
-                    <div class="hidden grid-cols-[minmax(0,1fr)_150px_170px_44px] gap-3 px-3 pb-2 text-[11px] font-semibold text-slate-400 md:grid"><span>สินค้า</span><span>คงเหลือ</span><span>จำนวนเบิก</span><span></span></div>
-                    <div id="item-list" class="space-y-2"></div>
-                    <div id="empty-items" class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่ได้เลือกสินค้า กด “เบิก” จากรายการด้านบน</div>
-                </div>
                 @endif
             </div>
+            @if($isProduction)
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-5 py-4">
                 <p class="text-xs text-slate-500">ตรวจสอบสินค้า คลัง และจำนวนก่อนยืนยัน</p>
-                <button class="btn-primary px-6">{{ $isProduction ? 'ยืนยันการผลิต' : 'ส่งคำขอเบิก' }}</button>
+                <button class="btn-primary px-6">ยืนยันการผลิต</button>
             </div>
+            @endif
         </section>
+
+        @unless($isProduction)
+        <div id="requisition-cart-backdrop" class="fixed inset-0 z-[60] hidden bg-slate-950/40 backdrop-blur-sm"></div>
+        <aside id="requisition-cart" class="fixed inset-y-0 right-0 z-[70] flex w-full max-w-2xl translate-x-full flex-col bg-white shadow-2xl transition-transform duration-300" role="dialog" aria-modal="true" aria-labelledby="requisition-cart-title">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h3 id="requisition-cart-title" class="text-lg font-bold text-slate-900">รายการเบิกสินค้า</h3><p class="text-xs text-slate-500">ตรวจสินค้า จำนวน และข้อมูลใบเบิกก่อนส่ง</p></div><button type="button" id="close-requisition-cart" class="grid size-10 place-items-center rounded-lg text-xl text-slate-500 hover:bg-slate-100" aria-label="ปิดรายการเบิก">×</button></div>
+            <div class="flex-1 space-y-5 overflow-y-auto p-5">
+                <section class="rounded-xl border border-slate-200 p-4">
+                    <div class="mb-4"><span class="label">ประเภทใบเบิก</span><strong id="selected-type-label" class="block text-sm text-slate-800">เลือกสินค้าจากรายการ</strong></div>
+                    <div class="grid gap-3 sm:grid-cols-2"><label><span class="label">แผนก / หน่วยงาน</span><input class="input" name="department_name" value="{{ old('department_name') }}" placeholder="เช่น ฝ่ายผลิต"></label><label><span class="label">วัตถุประสงค์</span><input class="input" name="purpose" value="{{ old('purpose') }}" placeholder="ระบบจะใช้ชื่อประเภทหากไม่ระบุ"></label></div>
+                    <label class="mt-3 block"><span class="label">หมายเหตุ</span><textarea class="input" name="note" rows="2" placeholder="รายละเอียดเพิ่มเติม">{{ old('note') }}</textarea></label>
+                </section>
+                <section><div class="mb-3 flex items-center justify-between"><div><h4 class="text-sm font-semibold text-slate-800">สินค้าที่เลือก</h4><p class="text-xs text-slate-400">แก้ไขจำนวนหรือลบรายการได้</p></div><span class="badge-blue"><span id="drawer-cart-count">0</span> รายการ</span></div><div id="item-list" class="space-y-2"></div><div id="empty-items" class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่ได้เลือกสินค้า กด “เบิก” จากรายการสินค้า</div></section>
+            </div>
+            <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4"><button type="button" id="continue-shopping" class="btn-secondary">เลือกสินค้าต่อ</button><button class="btn-primary px-6">ส่งคำขอเบิก</button></div>
+        </aside>
+        @endunless
     </form>
 </div>
 @endsection
@@ -128,6 +139,8 @@ const targetInput = document.getElementById('target-product');
 const catalogBody = document.getElementById('product-catalog');
 const searchInput = document.getElementById('product-search');
 const typeFilter = document.getElementById('product-type-filter');
+const cartDrawer = document.getElementById('requisition-cart');
+const cartBackdrop = document.getElementById('requisition-cart-backdrop');
 const issueQueueUrl = @json(route('requisitions.issues'));
 const isAdmin = @json(auth()->user()->isAdmin());
 
@@ -157,6 +170,20 @@ function syncRequestType() {
     requestTypeInput.value = firstProduct ? requestTypeByProduct[firstProduct.type] : 'ISSUE_PART';
     const label = document.getElementById('selected-type-label');
     if (label) label.textContent = firstProduct ? requestLabels[requestTypeInput.value] : 'เลือกสินค้าจากรายการ';
+}
+
+function openCart() {
+    if (!cartDrawer) return;
+    cartDrawer.classList.remove('translate-x-full');
+    cartBackdrop?.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeCart() {
+    if (!cartDrawer) return;
+    cartDrawer.classList.add('translate-x-full');
+    cartBackdrop?.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
 }
 
 function renderCatalog() {
@@ -195,6 +222,7 @@ function addProduct(productId) {
     syncRequestType();
     renderItems();
     renderCatalog();
+    openCart();
 }
 
 function renderItems() {
@@ -209,6 +237,8 @@ function renderItems() {
         </div>`;
     }).join('');
     document.getElementById('empty-items')?.classList.toggle('hidden', requisitionRows.length > 0);
+    document.getElementById('cart-count')?.replaceChildren(document.createTextNode(String(requisitionRows.length)));
+    document.getElementById('drawer-cart-count')?.replaceChildren(document.createTextNode(String(requisitionRows.length)));
     itemList.querySelectorAll('[data-item-quantity]').forEach(input => input.addEventListener('input', event => { requisitionRows[Number(event.target.dataset.itemQuantity)].quantity = event.target.value; }));
     itemList.querySelectorAll('[data-remove-item]').forEach(button => button.addEventListener('click', () => {
         requisitionRows.splice(Number(button.dataset.removeItem), 1);
@@ -256,6 +286,11 @@ warehouseInput.addEventListener('change', () => { renderItems(); renderCatalog()
 searchInput?.addEventListener('input', renderCatalog);
 typeFilter?.addEventListener('change', renderCatalog);
 targetInput?.addEventListener('change', event => { selectedTarget = event.target.value; previewFormula(); });
+document.getElementById('open-requisition-cart')?.addEventListener('click', openCart);
+document.getElementById('close-requisition-cart')?.addEventListener('click', closeCart);
+document.getElementById('continue-shopping')?.addEventListener('click', closeCart);
+cartBackdrop?.addEventListener('click', closeCart);
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closeCart(); });
 document.getElementById('requisition-form').addEventListener('submit', event => {
     if (requisitionMode === 'withdraw' && requisitionRows.length === 0) {
         event.preventDefault();
