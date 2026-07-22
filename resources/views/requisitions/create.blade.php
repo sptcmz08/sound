@@ -126,18 +126,32 @@ function isBuild() {
 
 function wantedType() {
     return {
-        GENERAL_ISSUE: 'PART', ISSUE_WIP: 'WIP', ISSUE_FG: 'FG',
-        BUILD_WIP: 'WIP', BUILD_FG: 'FG'
+        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
+        BUILD_WIP: ['WIP'], BUILD_FG: ['FG']
+    }[current()];
+}
+
+function componentTypes() {
+    return {
+        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
+        BUILD_WIP: ['PART', 'SUPPLY'], BUILD_FG: ['WIP', 'PART', 'SUPPLY']
     }[current()];
 }
 
 function matchingProducts() {
-    return products.filter(product => product.type === wantedType());
+    const types = wantedType();
+    return products.filter(product => types.includes(product.type));
+}
+
+function componentProducts() {
+    const types = componentTypes();
+    return products.filter(product => types.includes(product.type));
 }
 
 function directOptions(selected) {
-    return '<option value="">— เลือกสินค้า —</option>' + matchingProducts().map(product =>
-        `<option value="${product.id}" ${String(product.id) === String(selected) ? 'selected' : ''}>[${escapeHtml(product.code)}] ${escapeHtml(product.name)}</option>`
+    const pool = isBuild() ? componentProducts() : matchingProducts();
+    return '<option value="">— เลือกสินค้า —</option>' + pool.map(product =>
+        `<option value="${product.id}" ${String(product.id) === String(selected) ? 'selected' : ''}>[${escapeHtml(product.type)}] ${escapeHtml(product.code)} — ${escapeHtml(product.name)}</option>`
     ).join('');
 }
 

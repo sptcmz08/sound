@@ -9,6 +9,7 @@
         'id' => $part->id,
         'code' => $part->code,
         'name' => $part->name,
+        'type' => $part->product_type->value,
         'image' => $part->image_path ? route('products.image', $part) : null,
         'unit' => $part->unit->name,
         'balance' => \App\Support\Quantity::format($part->balances_sum_quantity ?? 0),
@@ -35,8 +36,8 @@
                 <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 21V10l5 3V9l5 3V4h4v17M3 21h18"/></svg>
             </span>
             <div>
-                <h2 class="page-title">ผลิต WIP จาก PART</h2>
-                <p class="page-subtitle">ตั้งชื่อ WIP เลือกรายการ PART และระบุจำนวนที่ใช้ต่อ WIP 1 ชิ้น</p>
+                <h2 class="page-title">ผลิต WIP จาก PART / SUPPLY</h2>
+                <p class="page-subtitle">ตั้งชื่อ WIP แล้วเลือกรายการ PART และ SUPPLY ที่ใช้ต่อ WIP 1 ชิ้น</p>
             </div>
         </div>
         <a href="{{ route('requisitions.production') }}" class="btn-secondary">
@@ -84,10 +85,10 @@
 
         <section class="panel">
             <div class="panel-header">
-                <div><h3 class="text-xl font-bold text-slate-950">2. รายการ PART ที่ใช้</h3><p class="mt-0.5 text-sm text-slate-500">เลือก PART และจำนวนที่ใช้ต่อ WIP 1 {{ $unit->name }}</p></div>
+                <div><h3 class="text-xl font-bold text-slate-950">2. รายการชิ้นส่วนที่ใช้ (PART / SUPPLY)</h3><p class="mt-0.5 text-sm text-slate-500">เลือก PART หรือ SUPPLY และจำนวนที่ใช้ต่อ WIP 1 {{ $unit->name }}</p></div>
                 <div class="flex flex-wrap items-end gap-3">
                     <label class="min-w-64"><span class="label text-sm">คลังที่ตัดสต็อก <span class="text-rose-500">*</span></span><select name="warehouse_id" id="warehouse" class="select bg-white" required>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>
-                    <button type="button" id="add-part" class="btn-primary"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>เพิ่มรายการเบิก</button>
+                    <button type="button" id="add-part" class="btn-primary"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>เพิ่มรายการชิ้นส่วน</button>
                 </div>
             </div>
             <div class="panel-body">
@@ -131,8 +132,8 @@ function escapeHtml(value) {
 }
 
 function options(selected) {
-    return '<option value="">— เลือก PART —</option>' + parts.map(part =>
-        `<option value="${part.id}" ${String(part.id) === String(selected) ? 'selected' : ''}>[${escapeHtml(part.code)}] ${escapeHtml(part.name)}</option>`
+    return '<option value="">— เลือกชิ้นส่วน (PART / SUPPLY) —</option>' + parts.map(part =>
+        `<option value="${part.id}" ${String(part.id) === String(selected) ? 'selected' : ''}>[${escapeHtml(part.type)}] ${escapeHtml(part.code)} — ${escapeHtml(part.name)}</option>`
     ).join('');
 }
 

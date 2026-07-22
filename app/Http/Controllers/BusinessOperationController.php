@@ -14,11 +14,27 @@ use Illuminate\Validation\ValidationException;
 
 class BusinessOperationController extends Controller
 {
-    public function create(string $operation)
+    public function create(Request $request, string $operation)
     {
         $config = $this->config($operation);
+        $filterType = $request->query('type');
+        if ($filterType && in_array($filterType, ['PART', 'SUPPLY'], true)) {
+            $config['filter_type'] = $filterType;
+            if ($filterType === 'PART') {
+                $config['title'] = 'รับอะไหล่ผลิตเข้าสต็อก (PART)';
+                $config['subtitle'] = 'รับอะไหล่และชิ้นส่วนสำหรับใช้ใน BOM เพื่อประกอบสินค้า';
+            } elseif ($filterType === 'SUPPLY') {
+                $config['title'] = 'รับวัสดุสิ้นเปลืองเข้าสต็อก (SUPPLY)';
+                $config['subtitle'] = 'รับวัสดุสิ้นเปลือง (เช่น กาว, น้ำยา, เทป) ที่ไม่ต้องระบุใน BOM';
+            }
+        }
         $products = Product::with(['unit', 'balances', 'optionGroups.items.optionProduct.balances', 'optionGroups.items.optionProduct.unit'])->where('is_active', true)
-            ->when($config['product_types'], fn ($query, $types) => $query->whereIn('product_type', $types))
+            ->when($config['product_types'], function ($query, $types) use ($filterType) {
+                if ($filterType && in_array($filterType, $types, true)) {
+                    return $query->where('product_type', $filterType);
+                }
+                return $query->whereIn('product_type', $types);
+            })
             ->orderBy('product_type')->orderBy('code')->get();
 
         return view('operations.create', [

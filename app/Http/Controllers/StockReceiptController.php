@@ -27,23 +27,26 @@ class StockReceiptController extends Controller
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
         $product = Product::with('unit')->findOrFail($data['product_id']);
-        if ($product->product_type !== ProductType::PART) {
-            throw ValidationException::withMessages(['product_id' => 'การรับเข้าจาก Supplier รองรับเฉพาะ PART; WIP และ FG ต้องเข้าสต็อกจากขั้นตอนผลิต']);
+        if (! in_array($product->product_type, [ProductType::PART, ProductType::SUPPLY], true)) {
+            throw ValidationException::withMessages(['product_id' => 'การรับเข้าจาก Supplier รองรับเฉพาะ PART หรือ SUPPLY เท่านั้น; WIP และ FG ต้องเข้าสต็อกจากขั้นตอนผลิต']);
         }
         $type = match ($product->product_type) {
             ProductType::PART => StockDocumentType::PART_IN,
+            ProductType::SUPPLY => StockDocumentType::SUPPLY_IN,
             ProductType::WIP => StockDocumentType::WIP_IN,
             ProductType::FG => StockDocumentType::FG_IN,
         };
         $document = $stock->createAndPost([
             'document_date' => today()->format('Y-m-d'),
             'warehouse_id' => $data['warehouse_id'],
-            'purpose' => 'คีย์รับสินค้าเข้าสต็อก',
+            'purpose' => $product->product_type === ProductType::SUPPLY ? 'รับวัสดุสิ้นเปลืองเข้าสต็อก (SUPPLY)' : 'รับอะไหล่ผลิตเข้าสต็อก (PART)',
             'note' => $data['note'] ?? null,
             'idempotency_key' => (string) Str::uuid(),
             'items' => [['product_id' => $product->id, 'quantity' => $data['quantity']]],
         ], $type, $request->user());
 
-        return redirect()->route('products.index')->with('success', "รับ {$product->name} จำนวน ".Quantity::format($data['quantity'])." {$product->unit->name} เข้าสต็อกแล้ว ({$document->document_no})");
+        $typeName = $product->product_type === ProductType::SUPPLY ? 'วัสดุสิ้นเปลือง' : 'อะไหล่ PART';
+        return redirect()->route('products.index', ['type' => $product->product_type->value])
+            ->with('success', "รับ {$typeName} ({$product->name}) จำนวน ".Quantity::format($data['quantity'])." {$product->unit->name} เข้าสต็อกแล้ว ({$document->document_no})");
     }
 }

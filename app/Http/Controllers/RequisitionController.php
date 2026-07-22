@@ -73,7 +73,7 @@ class RequisitionController extends Controller
 
         return view('requisitions.create-wip', [
             'parts' => Product::with(['unit', 'balances'])->withSum('balances', 'quantity')
-                ->where('product_type', ProductType::PART)->where('is_active', true)->orderBy('code')->get(),
+                ->whereIn('product_type', [ProductType::PART, ProductType::SUPPLY])->where('is_active', true)->orderBy('product_type')->orderBy('code')->get(),
             'savedWips' => Product::with('components')->where('product_type', ProductType::WIP)
                 ->where('is_active', true)->whereHas('components')->orderBy('name')->get(),
             'warehouses' => Warehouse::where('is_active', true)->orderBy('code')->get(),
@@ -98,8 +98,8 @@ class RequisitionController extends Controller
             $parts = Product::whereIn('id', collect($data['components'])->pluck('product_id'))->get()->keyBy('id');
             foreach ($data['components'] as $line) {
                 $part = $parts->get((int) $line['product_id']);
-                if (! $part || ! $part->is_active || $part->product_type !== ProductType::PART) {
-                    throw ValidationException::withMessages(['components' => 'ผลิต WIP ได้จาก PART ที่เปิดใช้งานเท่านั้น']);
+                if (! $part || ! $part->is_active || ! in_array($part->product_type, [ProductType::PART, ProductType::SUPPLY], true)) {
+                    throw ValidationException::withMessages(['components' => 'ผลิต WIP ได้จาก PART หรือ SUPPLY ที่เปิดใช้งานเท่านั้น']);
                 }
             }
 

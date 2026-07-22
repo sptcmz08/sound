@@ -17,9 +17,11 @@
         </div>
         @if(auth()->user()->isAdmin())
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('operations.create', 'supplier-receive') }}" class="btn-success shadow-lg shadow-emerald-500/20">
-                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                รับสินค้าเข้า (Supplier)
+            <a href="{{ route('operations.create', ['operation' => 'supplier-receive', 'type' => 'PART']) }}" class="btn-success shadow-lg shadow-emerald-500/20">
+                📦 รับ PART เข้า (อะไหล่)
+            </a>
+            <a href="{{ route('operations.create', ['operation' => 'supplier-receive', 'type' => 'SUPPLY']) }}" class="btn-secondary shadow-sm">
+                🧪 รับ SUPPLY เข้า (สิ้นเปลือง)
             </a>
             <a href="{{ route('products.create') }}" class="btn-primary shadow-lg shadow-blue-500/20">
                 <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -175,13 +177,26 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 space-y-4">
+                    {{-- Type Selector Tabs (Separating PART and SUPPLY) --}}
+                    <div class="nav nav-pills nav-fill bg-slate-100 p-1 rounded-3" id="receive-type-toggle">
+                        <button type="button" class="nav-link active rounded-3 font-bold py-2 text-sm" data-type="PART">
+                            📦 รับ PART (อะไหล่ผลิต)
+                        </button>
+                        <button type="button" class="nav-link rounded-3 font-bold py-2 text-sm text-slate-600" data-type="SUPPLY">
+                            🧪 รับ SUPPLY (สิ้นเปลือง)
+                        </button>
+                    </div>
+                    <div id="receive-type-help" class="text-xs font-semibold px-3 py-2 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200">
+                        📦 <strong>รับเข้า PART:</strong> อะไหล่/ชิ้นส่วนผลิตสำหรับระบุในสูตร BOM
+                    </div>
+
                     <div>
                         <label class="label">สินค้าที่ต้องการรับเข้า *</label>
                         <select id="receive-product" class="select" name="product_id" required>
                             <option value="">— เลือกสินค้า —</option>
                             @foreach($receiptProducts as $p)
-                            <option value="{{ $p->id }}" data-unit="{{ $p->unit->name }}" data-image="{{ $p->image_path ? route('products.image', $p) : '' }}">
-                                {{ $p->code }} — {{ $p->name }} ({{ $p->product_type->label() }})
+                            <option value="{{ $p->id }}" data-type="{{ $p->product_type->value }}" data-unit="{{ $p->unit->name }}" data-image="{{ $p->image_path ? route('products.image', $p) : '' }}">
+                                [{{ $p->product_type->value }}] {{ $p->code }} — {{ $p->name }}
                             </option>
                             @endforeach
                         </select>
@@ -274,6 +289,41 @@
         const productSelect = document.getElementById('receive-product');
         const unitLabel = document.getElementById('receive-unit');
         const previewEl = document.getElementById('receive-product-preview');
+        const typeToggle = document.getElementById('receive-type-toggle');
+        const typeHelp = document.getElementById('receive-type-help');
+        let activeType = 'PART';
+
+        const filterProducts = () => {
+            if (!productSelect) return;
+            const options = productSelect.querySelectorAll('option[data-type]');
+            options.forEach(opt => {
+                opt.style.display = opt.dataset.type === activeType ? '' : 'none';
+                if (opt.dataset.type !== activeType && opt.selected) opt.selected = false;
+            });
+            productSelect.value = '';
+            updateReceiveUnit();
+        };
+
+        if (typeToggle) {
+            typeToggle.querySelectorAll('button[data-type]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activeType = btn.dataset.type;
+                    typeToggle.querySelectorAll('button').forEach(b => {
+                        b.classList.toggle('active', b === btn);
+                        b.classList.toggle('text-slate-600', b !== btn);
+                    });
+                    if (typeHelp) {
+                        typeHelp.className = activeType === 'SUPPLY'
+                            ? 'text-xs font-semibold px-3 py-2 rounded-2xl bg-slate-50 text-slate-700 border border-slate-200'
+                            : 'text-xs font-semibold px-3 py-2 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200';
+                        typeHelp.innerHTML = activeType === 'SUPPLY'
+                            ? '🧪 <strong>รับเข้า SUPPLY:</strong> วัสดุสิ้นเปลือง (เช่น กาว, น้ำยา, เทป) ไม่ต้องระบุจำนวนต่อ BOM'
+                            : '📦 <strong>รับเข้า PART:</strong> อะไหล่/ชิ้นส่วนผลิตสำหรับระบุในสูตร BOM';
+                    }
+                    filterProducts();
+                });
+            });
+        }
 
         const updateReceiveUnit = () => {
             const selected = productSelect?.selectedOptions[0];
@@ -288,7 +338,18 @@
             const button = event.relatedTarget;
             const productId = button?.getAttribute('data-product');
             if (productId && productSelect) {
+                const opt = productSelect.querySelector(`option[value="${productId}"]`);
+                if (opt && opt.dataset.type) {
+                    activeType = opt.dataset.type;
+                    typeToggle?.querySelectorAll('button').forEach(b => {
+                        b.classList.toggle('active', b.dataset.type === activeType);
+                        b.classList.toggle('text-slate-600', b.dataset.type !== activeType);
+                    });
+                }
+                filterProducts();
                 productSelect.value = productId;
+            } else {
+                filterProducts();
             }
             updateReceiveUnit();
         });
@@ -297,6 +358,7 @@
         @if(request('receive'))
         new bootstrap.Modal(receiveModalEl).show();
         @endif
+        filterProducts();
     }
 
     // Quick Image Modal JS

@@ -13,14 +13,14 @@ enum RequisitionType: string
     public function label(): string
     {
         return match ($this) {
-            self::GENERAL_ISSUE => 'เบิก PART', self::BUILD_WIP => 'ผลิต WIP', self::BUILD_FG => 'ผลิต FG', self::ISSUE_WIP => 'เบิก WIP', self::ISSUE_FG => 'เบิก FG'
+            self::GENERAL_ISSUE => 'เบิก PART / SUPPLY', self::BUILD_WIP => 'ผลิต WIP', self::BUILD_FG => 'ผลิต FG', self::ISSUE_WIP => 'เบิก WIP', self::ISSUE_FG => 'เบิก FG'
         };
     }
 
     public function description(): string
     {
         return match ($this) {
-            self::GENERAL_ISSUE => 'เบิก PART ออกจากสต็อก', self::BUILD_WIP => 'ตัด PART ตามสูตรและเพิ่ม WIP เข้าสต็อก', self::BUILD_FG => 'ตัด WIP/PART ตามสูตรและเพิ่ม FG เข้าสต็อก', self::ISSUE_WIP => 'เบิก WIP ออกจากสต็อก', self::ISSUE_FG => 'เบิก FG ออกจากสต็อก'
+            self::GENERAL_ISSUE => 'เบิก PART หรือ SUPPLY ออกจากสต็อก', self::BUILD_WIP => 'ตัด PART + SUPPLY ตามสูตรและเพิ่ม WIP เข้าสต็อก', self::BUILD_FG => 'ตัด WIP + PART + SUPPLY ตามสูตรและเพิ่ม FG เข้าสต็อก', self::ISSUE_WIP => 'เบิก WIP ออกจากสต็อก', self::ISSUE_FG => 'เบิก FG ออกจากสต็อก'
         };
     }
 

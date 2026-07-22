@@ -54,7 +54,7 @@ class RequisitionWorkflowTest extends TestCase
             'product_id' => $this->part->id,
             'warehouse_id' => $this->warehouse->id,
             'quantity' => 100,
-        ])->assertRedirect(route('products.index'));
+        ])->assertRedirect(route('products.index', ['type' => 'PART']));
 
         $this->assertSame('100', StockBalance::where('product_id', $this->part->id)->first()->quantity);
         $this->actingAs($this->admin)->get(route('products.index'))
