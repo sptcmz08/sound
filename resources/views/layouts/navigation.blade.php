@@ -1,6 +1,6 @@
 <div class="mb-4 px-2">
     <a href="{{route('dashboard')}}" class="sidebar-link {{$nav(request()->routeIs('dashboard'))}}" title="ภาพรวมระบบ">
-        <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <svg class="size-5 shrink-0" style="width:20px;height:20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         <span class="sidebar-label">ภาพรวมระบบ</span>
     </a>
 </div>
@@ -8,7 +8,7 @@
 <details open class="sidebar-group mb-4">
     <summary class="sidebar-group-title flex cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
         <span>รายการสินค้า & สต็อก</span>
-        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        <svg class="size-3.5" style="width:14px;height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </summary>
     <div class="mt-1 space-y-1">
         @if(auth()->user()->isAdmin())
@@ -49,7 +49,7 @@
 <details open class="sidebar-group mb-4">
     <summary class="sidebar-group-title flex cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
         <span>รายงาน & สถิติ</span>
-        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        <svg class="size-3.5" style="width:14px;height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </summary>
     <div class="mt-1 space-y-1">
         <a href="{{route('reports.cost-profit')}}" class="sidebar-link {{$nav(request()->routeIs('reports.cost-profit'))}}" title="ต้นทุน - กำไร">
@@ -79,7 +79,7 @@
 <details class="sidebar-group mb-2" open>
     <summary class="sidebar-group-title flex cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200">
         <span>จัดการระบบ</span>
-        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        <svg class="size-3.5" style="width:14px;height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </summary>
     <div class="mt-1 space-y-1">
         <a href="{{route('requisitions.issues')}}" class="sidebar-link {{$nav(request()->routeIs('requisitions.issues','requisitions.approvals'))}}">
