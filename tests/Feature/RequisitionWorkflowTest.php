@@ -182,6 +182,40 @@ class RequisitionWorkflowTest extends TestCase
         $this->assertDatabaseHas('requisitions', ['request_type' => RequisitionType::ISSUE_SUPPLY->value]);
     }
 
+    public function test_staff_withdrawal_is_ready_to_view_after_admin_approval_without_signature(): void
+    {
+        $this->actingAs($this->admin)->post(route('stock.receive.store'), [
+            'product_id' => $this->part->id,
+            'warehouse_id' => $this->warehouse->id,
+            'quantity' => 10,
+        ]);
+
+        $this->actingAs($this->staff)->post(route('requisitions.store'), [
+            'request_type' => RequisitionType::ISSUE_PART->value,
+            'warehouse_id' => $this->warehouse->id,
+            'purpose' => 'เบิกใช้งาน',
+            'items' => [['product_id' => $this->part->id, 'quantity' => 3]],
+        ])->assertRedirect();
+
+        $requisition = Requisition::firstOrFail();
+        $this->assertSame(RequisitionStatus::PENDING, $requisition->status);
+        $this->assertSame('10', StockBalance::where('product_id', $this->part->id)->value('quantity'));
+
+        $this->actingAs($this->admin)->post(route('requisitions.approve', $requisition))->assertRedirect();
+
+        $this->assertSame(RequisitionStatus::APPROVED, $requisition->fresh()->status);
+        $this->assertNull($requisition->fresh()->requester_signed_at);
+        $this->assertSame('7', StockBalance::where('product_id', $this->part->id)->value('quantity'));
+        $this->actingAs($this->staff)->get(route('requisitions.index'))
+            ->assertOk()
+            ->assertSee('อนุมัติแล้ว')
+            ->assertSee('เปิดใบเบิก PDF')
+            ->assertDontSee('ลงนาม');
+        $this->actingAs($this->staff)->get(route('requisitions.pdf', $requisition))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
     public function test_saved_wip_recipe_can_be_selected_and_reused_without_duplicate_product(): void
     {
         $this->actingAs($this->staff)
@@ -237,28 +271,28 @@ class RequisitionWorkflowTest extends TestCase
             ->assertSee('อนุมัติแล้ว')
             ->assertSee('สร้างโดย Admin')
             ->assertDontSee('data-open-process', false)
-            ->assertSee('ดาวน์โหลด PDF');
+            ->assertSee('เปิดใบเบิก PDF');
 
         $this->actingAs($this->admin)->get(route('requisitions.show', $requisition))
             ->assertOk()
-            ->assertSee('ดาวน์โหลด PDF')
+            ->assertSee('เปิดใบเบิก PDF')
             ->assertDontSee(route('requisitions.approve', $requisition), false);
 
         $this->actingAs($this->admin)->get(route('requisitions.print', $requisition))
             ->assertOk()
             ->assertSee('ใบเบิกพัสดุ')
             ->assertSee('ชื่อพนักงานผู้เบิก')
-            ->assertSee('อนุมัติโดยผู้ดูแลระบบ')
-            ->assertSee('เอกสารนี้ไม่ต้องลงลายเซ็น')
+            ->assertSee('อนุมัติใบเบิกและตัดสต็อกเรียบร้อยแล้ว')
+            ->assertSee('สถานะเอกสาร')
             ->assertDontSee($this->admin->email)
             ->assertDontSee('เอกสารสร้างจากระบบ Simple Stock')
-            ->assertDontSee('ลายเซ็นผู้ขอเบิก');
+            ->assertDontSee('ลายเซ็น');
 
         $pdf = $this->actingAs($this->admin)->get(route('requisitions.pdf', $requisition));
         $pdf->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $pdf->getContent());
         $this->assertGreaterThan(10_000, strlen($pdf->getContent()));
-        $this->assertStringContainsString('attachment;', $pdf->headers->get('content-disposition'));
+        $this->assertStringContainsString('inline;', $pdf->headers->get('content-disposition'));
     }
 
     public function test_build_wip_request_is_approved_and_posts_stock_atomically(): void
@@ -276,27 +310,24 @@ class RequisitionWorkflowTest extends TestCase
         $this->assertSame('12', $request->items->first()->quantity);
         $this->assertSame(RequisitionStatus::PENDING, $request->status);
 
-        $this->actingAs($this->staff)->post(route('requisitions.sign', $request), ['pin' => '2468'])
-            ->assertStatus(422);
-
         $this->actingAs($this->admin)->post(route('requisitions.approve', $request))->assertRedirect();
         $this->assertSame(RequisitionStatus::APPROVED, $request->fresh()->status);
-        $this->actingAs($this->staff)->get(route('requisitions.pdf', $request))->assertNotFound();
         $this->assertSame('38', StockBalance::where('product_id', $this->part->id)->first()->quantity);
         $this->assertSame('3', StockBalance::where('product_id', $this->wip->id)->first()->quantity);
-
-        $this->actingAs($this->staff)->post(route('signature.update'), [
-            'signature_data' => $this->signatureData(),
-            'pin' => '2468',
-        ])->assertRedirect()->assertSessionHasNoErrors();
-        $this->actingAs($this->staff)->post(route('requisitions.sign', $request), ['pin' => '2468'])
-            ->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertNotNull($request->fresh()->requester_signed_at);
+        $this->assertNull($request->fresh()->requester_signed_at);
+        $this->actingAs($this->staff)->get(route('requisitions.index'))
+            ->assertOk()
+            ->assertSee('อนุมัติแล้ว')
+            ->assertSee('เปิดใบเบิก PDF')
+            ->assertDontSee('รอพนักงานลงนาม');
+        $this->actingAs($this->staff)->get(route('requisitions.pdf', $request))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
         $this->actingAs($this->staff)->get(route('requisitions.print', $request))
             ->assertOk()
             ->assertSee($request->request_no)
-            ->assertSee('ลายเซ็นผู้ขอเบิก')
-            ->assertSee('ลายเซ็นผู้อนุมัติ');
+            ->assertSee('อนุมัติใบเบิกและตัดสต็อกเรียบร้อยแล้ว')
+            ->assertDontSee('ลายเซ็น');
     }
 
     public function test_shortage_keeps_request_pending_and_does_not_create_wip(): void

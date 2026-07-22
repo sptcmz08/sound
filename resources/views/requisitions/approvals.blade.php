@@ -2,7 +2,7 @@
 @section('title','รายการรออนุมัติ')
 @section('header','รายการรออนุมัติ')
 @section('content')
-<div class="mb-7"><span class="badge-amber mb-3">{{$pendingCount}} รายการรอตรวจ</span><h2 class="page-title">ศูนย์อนุมัติการเบิกและผลิต</h2><p class="page-subtitle">Admin ตรวจและอนุมัติก่อน จากนั้นพนักงานลงนามเพื่อออก PDF</p></div>
+<div class="mb-7"><span class="badge-amber mb-3">{{$pendingCount}} รายการรอตรวจ</span><h2 class="page-title">ศูนย์อนุมัติการเบิกและผลิต</h2><p class="page-subtitle">Admin ตรวจและอนุมัติ จากนั้นระบบตัดสต็อกและออกใบเบิกทันที</p></div>
 <div class="grid gap-4">
 @forelse($rows as $r)
 <a href="{{route('requisitions.show',$r)}}" class="panel group flex flex-wrap items-center gap-5 p-5 hover:border-blue-300">

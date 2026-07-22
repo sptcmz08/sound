@@ -111,46 +111,9 @@
             </tbody>
         </table>
 
-        @if($requisition->requester->isAdmin())
-        <section class="approval-admin {{$requisition->items->count() <= 6 ? 'approval-pinned' : ''}}"><table class="approval-table"><tr><td class="approval-icon"><span class="approval-check">✓</span></td><td><div class="approval-title">อนุมัติโดยผู้ดูแลระบบและปรับสต็อกแล้ว</div><div class="approval-detail">ดำเนินการโดย {{ $requisition->approver->name }} · {{ $requisition->approved_at->format('d/m/Y H:i') }} น.</div></td><td class="approval-note">รายการที่สร้างโดยผู้ดูแลระบบ<br>เอกสารนี้ไม่ต้องลงลายเซ็น</td></tr></table></section>
-
-        {{-- ช่องสำหรับแผนกเบิกจ่าย --}}
-        <section class="dept-section {{$requisition->items->count() <= 6 ? 'approval-pinned' : ''}}" style="margin-top:18px;">
-            <div class="dept-title">สำหรับแผนกเบิกจ่าย (กรอกเมื่อรับเอกสาร)</div>
-            <div class="dept-grid">
-                <div class="dept-cell"><div class="dept-line">&nbsp;</div><div class="dept-label">ผู้รับเอกสาร</div></div>
-                <div class="dept-cell"><div class="dept-line">&nbsp;</div><div class="dept-label">วันที่รับเอกสาร</div></div>
-            </div>
-            <div class="dept-grid" style="margin-top:8px;">
-                <div class="dept-cell"><div class="dept-line">&nbsp;</div><div class="dept-label">ผู้จ่ายสินค้า</div></div>
-                <div class="dept-cell"><div class="dept-line">&nbsp;</div><div class="dept-label">วันที่จ่าย</div></div>
-            </div>
+        <section class="approval-admin {{$requisition->items->count() <= 6 ? 'approval-pinned' : ''}}">
+            <table class="approval-table"><tr><td class="approval-icon"><span class="approval-check">✓</span></td><td><div class="approval-title">อนุมัติใบเบิกและตัดสต็อกเรียบร้อยแล้ว</div><div class="approval-detail">อนุมัติโดย {{ $requisition->approver->name }} · {{ $requisition->approved_at->format('d/m/Y H:i') }} น.</div></td><td class="approval-note">สถานะเอกสาร<br><strong>อนุมัติแล้ว</strong></td></tr></table>
         </section>
-        @else
-        {{-- ช่องลายเซ็น 3 ช่อง: ผู้ขอเบิก / ผู้อนุมัติ / แผนกเบิกจ่าย --}}
-        <table class="signatures {{$requisition->items->count() <= 6 ? 'signatures-pinned' : ''}}">
-            <tr>
-                <td>
-                    <div class="sign-space">@if($requesterSignatureData)<img src="{{$requesterSignatureData}}" alt="ลายเซ็นผู้ขอเบิก">@endif</div>
-                    <div class="sign-line">ผู้ขอเบิก</div>
-                    <div class="sign-name">({{ $requisition->requester->name }})</div>
-                    <div class="sign-date">วันที่ {{ $requisition->requester_signed_at ? $requisition->requester_signed_at->format('d/m/Y') : '______ / ______ / ______' }}</div>
-                </td>
-                <td>
-                    <div class="sign-space"></div>
-                    <div class="sign-line">ลายเซ็นผู้อนุมัติ</div>
-                    <div class="sign-name">({{ $requisition->approver->name }})</div>
-                    <div class="sign-date">วันที่ {{ $requisition->approved_at->format('d/m/Y') }}</div>
-                </td>
-                <td>
-                    <div class="sign-space"></div>
-                    <div class="sign-line">ผู้จ่ายสินค้า (แผนกเบิก)</div>
-                    <div class="sign-name">( ______________________ )</div>
-                    <div class="sign-date">วันที่ ______ / ______ / ______</div>
-                </td>
-            </tr>
-        </table>
-        @endif
     </main>
 </body>
 </html>

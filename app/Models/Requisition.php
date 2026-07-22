@@ -53,10 +53,6 @@ class Requisition extends Model
 
     public function isReadyForPdf(): bool
     {
-        if ($this->status !== RequisitionStatus::APPROVED) {
-            return false;
-        }
-
-        return $this->requester->isAdmin() || (bool) $this->requester_signed_at;
+        return $this->status === RequisitionStatus::APPROVED;
     }
 }

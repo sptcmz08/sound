@@ -228,9 +228,8 @@ class RequisitionController extends Controller
     {
         $service->approve($requisition, $request->user());
 
-        return redirect()->route('requisitions.show', $requisition)->with('success', $requisition->requester->isAdmin()
-            ? 'อนุมัติและปรับสต็อกเรียบร้อยแล้ว'
-            : 'อนุมัติและปรับสต็อกแล้ว ระบบกำลังรอพนักงานลงนามก่อนออก PDF');
+        return redirect()->route('requisitions.show', $requisition)
+            ->with('success', 'อนุมัติและตัดสต็อกเรียบร้อยแล้ว ใบเบิกพร้อมเปิดดู');
     }
 
     public function sign(Request $request, Requisition $requisition, AuditLogService $audit)
@@ -293,7 +292,7 @@ class RequisitionController extends Controller
         $fonts->registerFont(['family' => 'Plex Thai PDF', 'style' => 'normal', 'weight' => 'normal'], resource_path('fonts/IBMPlexSansThai-Regular.ttf'));
         $fonts->registerFont(['family' => 'Plex Thai PDF', 'style' => 'normal', 'weight' => 'bold'], resource_path('fonts/IBMPlexSansThai-Bold.ttf'));
 
-        return $pdf->download('requisition-'.$requisition->request_no.'.pdf');
+        return $pdf->stream('requisition-'.$requisition->request_no.'.pdf');
     }
 
     private function signatureData(Requisition $requisition): ?string

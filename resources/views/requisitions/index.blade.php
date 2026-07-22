@@ -14,7 +14,7 @@
 
 <div class="space-y-5">
     <div class="page-head">
-        <div><span class="page-kicker">ติดตามงาน</span><h2 class="page-title">{{ auth()->user()->isAdmin() ? 'รายการเบิกและผลิตทั้งหมด' : 'ใบเบิกของฉัน' }}</h2><p class="page-subtitle">ตรวจสถานะอนุมัติ ลงนาม และดาวน์โหลดเอกสารจากรายการเดียว</p></div>
+        <div><span class="page-kicker">ติดตามงาน</span><h2 class="page-title">{{ auth()->user()->isAdmin() ? 'รายการเบิกและผลิตทั้งหมด' : 'ใบเบิกของฉัน' }}</h2><p class="page-subtitle">ตรวจสถานะและเปิดดูใบเบิกที่ Admin อนุมัติแล้ว</p></div>
         <div class="flex gap-2"><a href="{{ route('requisitions.withdraw') }}" class="btn-secondary">+ เบิกสินค้า</a><a href="{{ route('requisitions.production') }}" class="btn-primary">+ ผลิต WIP / FG</a></div>
     </div>
 
@@ -32,7 +32,7 @@
         </div>
         <div class="table-wrap">
             <table class="data-table">
-                <thead><tr><th>เลขที่ / วันที่</th><th>ประเภท</th><th>ผู้ขอ / คลัง</th><th>รายการ</th><th>ขั้นตอนปัจจุบัน</th><th class="text-right">ดำเนินการ</th></tr></thead>
+                <thead><tr><th>เลขที่ / วันที่</th><th>ประเภท</th><th>ผู้ขอ / คลัง</th><th>รายการ</th><th>สถานะ</th><th class="text-right">ดำเนินการ</th></tr></thead>
                 <tbody>
                 @forelse($rows as $row)
                 @php
@@ -41,8 +41,7 @@
                     $isAdminCreated = $row->requester->isAdmin();
                     $step = match(true) {
                         $row->status->value === 'REJECTED' => ['ไม่อนุมัติ', 'badge-red'],
-                        $pdfReady => ['PDF พร้อมดาวน์โหลด', 'badge-green'],
-                        $row->status->value === 'APPROVED' => ['รอพนักงานลงนาม', 'badge-blue'],
+                        $row->status->value === 'APPROVED' => ['อนุมัติแล้ว', 'badge-green'],
                         default => ['รอ Admin อนุมัติ', 'badge-amber'],
                     };
                 @endphp
@@ -52,7 +51,7 @@
                     <td><strong class="block text-xs text-slate-700">{{ $row->requester->name }}</strong><span class="text-[10px] text-slate-400">{{ $row->warehouse->name }}</span></td>
                     <td><div class="flex items-center gap-2"><x-product-image :product="$displayProduct" size="sm" /><span class="text-xs text-slate-600">{{ $row->targetProduct ? $row->targetProduct->name.' × '.\App\Support\Quantity::format($row->target_quantity) : $row->items_count.' รายการ' }}</span></div></td>
                     <td><span class="{{ $step[1] }}">{{ $step[0] }}</span></td>
-                    <td><div class="flex justify-end gap-1"><a href="{{ route('requisitions.show', $row) }}" class="btn-secondary">เปิดรายการ</a>@if($pdfReady)<a href="{{ route('requisitions.pdf', $row) }}" class="btn-primary">ดาวน์โหลด PDF</a>@endif</div></td>
+                    <td><div class="flex justify-end gap-1"><a href="{{ route('requisitions.show', $row) }}" class="btn-secondary">เปิดรายการ</a>@if($pdfReady)<a target="_blank" href="{{ route('requisitions.pdf', $row) }}" class="btn-primary">เปิดใบเบิก PDF</a>@endif</div></td>
                 </tr>
                 @empty
                 <tr><td colspan="6" class="empty-state">ไม่พบรายการในสถานะที่เลือก</td></tr>
