@@ -43,7 +43,26 @@ class BusinessOperationTest extends TestCase
 
     public function test_new_sidebar_pages_and_reports_render(): void
     {
-        $this->actingAs($this->admin)->get(route('dashboard'))->assertOk()->assertSee('เบิก-จ่าย')->assertSee('ต้นทุน - กำไร');
+        $sidebar = $this->actingAs($this->admin)->get(route('dashboard'));
+        $sidebar->assertOk()
+            ->assertSeeInOrder([
+                'รายการ',
+                'เบิก-จ่าย (จากสต็อก)',
+                'ส่งเข้า WIP / FG',
+                'สต็อกคงเหลือ',
+                'รับเข้า (Supplier)',
+                'เพิ่ม PART / WIP / FG / สิ้นเปลือง',
+                'ขาย',
+                'เคลม',
+                'รายงาน',
+                'ต้นทุน - กำไร',
+                'เบิก - จ่าย',
+                'ขาย',
+                'เคลม (จากลูกค้า)',
+                'ของเสีย (ลูกค้า + การผลิต)',
+            ])
+            ->assertDontSee('sidebar-section-title">ภาพรวม</p>', false)
+            ->assertDontSee('sidebar-section-title">ติดตามงาน</p>', false);
         $this->actingAs($this->admin)->get(route('operations.create', 'supplier-receive'))
             ->assertOk()
             ->assertSee($this->part->code)
