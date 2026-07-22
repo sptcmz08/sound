@@ -169,7 +169,7 @@ class BusinessOperationController extends Controller
                 'party_label' => 'ลูกค้า', 'party_required' => true, 'note_required' => true, 'cost_input' => false, 'price_input' => false, 'direction' => 'in',
             ],
             'waste' => [
-                'title' => 'บันทึกของเสีย', 'subtitle' => 'ตัด PART, WIP หรือ FG ที่เสียจากลูกค้าหรือการผลิตออกจากสต็อก',
+                'title' => 'บันทึกของเสีย', 'subtitle' => 'ตัด PART, SUPPLY, WIP หรือ FG ที่เสียจากลูกค้าหรือการผลิตออกจากสต็อก',
                 'document_type' => StockDocumentType::WASTE_OUT, 'product_types' => null,
                 'party_label' => 'แหล่งที่มา', 'party_required' => false, 'note_required' => true, 'cost_input' => false, 'price_input' => false, 'direction' => 'out',
             ],

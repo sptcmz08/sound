@@ -123,6 +123,10 @@ class StockSystemTest extends TestCase
         $this->assertSame(StockDocumentStatus::CANCELLED, $doc->fresh()->status);
         $this->assertSame(StockDocumentType::REVERSAL, $reversal->document_type);
         $this->assertDatabaseCount('stock_transactions', 2);
+        $this->actingAs($this->admin)->get(route('documents.show', $reversal))
+            ->assertOk()
+            ->assertSee($this->part->code)
+            ->assertSee('คืนจาก '.$doc->document_no);
         $this->expectException(ValidationException::class);
         app(StockService::class)->cancel($doc, $this->admin, 'ซ้ำ');
     }

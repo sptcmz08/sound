@@ -6,7 +6,11 @@
 @php
     $showCost = $document->items->contains(fn ($item) => (float) $item->unit_cost > 0);
     $showPrice = $document->items->contains(fn ($item) => (float) $item->unit_price > 0);
-    $quantityTotal = $document->items->sum(fn ($item) => (float) $item->quantity);
+    $showsTransactions = $document->items->isEmpty() && $document->transactions->isNotEmpty();
+    $lineCount = $showsTransactions ? $document->transactions->count() : $document->items->count();
+    $quantityTotal = $showsTransactions
+        ? $document->transactions->sum(fn ($transaction) => (float) $transaction->quantity_in + (float) $transaction->quantity_out)
+        : $document->items->sum(fn ($item) => (float) $item->quantity);
     $valueTotal = $document->items->sum(fn ($item) => (float) $item->quantity * (float) ($showPrice ? $item->unit_price : $item->unit_cost));
     $nextOperation = match($document->document_type->value) {
         'SUPPLIER_IN' => 'supplier-receive',
@@ -31,7 +35,7 @@
     </div>
 
     <div class="grid gap-3 sm:grid-cols-3">
-        <div class="metric-card"><span class="text-xs text-slate-500">จำนวนรายการ</span><strong class="mt-2 block text-xl text-slate-900">{{ $document->items->count() }} รายการ</strong></div>
+        <div class="metric-card"><span class="text-xs text-slate-500">จำนวนรายการ</span><strong class="mt-2 block text-xl text-slate-900">{{ $lineCount }} รายการ</strong></div>
         <div class="metric-card"><span class="text-xs text-slate-500">จำนวนรวม</span><strong class="mt-2 block text-xl text-slate-900">{{ \App\Support\Quantity::format($quantityTotal) }} หน่วย</strong></div>
         <div class="metric-card"><span class="text-xs text-slate-500">{{ $showPrice ? 'ยอดขายรวม' : ($showCost ? 'มูลค่ารวม' : 'สถานะสต็อก') }}</span><strong class="mt-2 block text-xl {{ $showPrice ? 'text-blue-700' : 'text-slate-900' }}">{{ ($showPrice || $showCost) ? '฿'.number_format($valueTotal, 2) : 'บันทึกแล้ว' }}</strong></div>
     </div>
@@ -43,6 +47,12 @@
                 <table class="data-table">
                     <thead><tr><th>สินค้า</th><th>ประเภท</th><th class="text-right">จำนวน</th>@if($showCost)<th class="text-right">ต้นทุน/หน่วย</th>@endif @if($showPrice)<th class="text-right">ราคาขาย/หน่วย</th><th class="text-right">รวม</th>@endif</tr></thead>
                     <tbody>
+                    @if($showsTransactions)
+                    @foreach($document->transactions as $transaction)
+                    @php($transactionQuantity = (float) $transaction->quantity_in > 0 ? $transaction->quantity_in : $transaction->quantity_out)
+                    <tr><td><div class="flex items-center gap-3"><x-product-image :product="$transaction->product" size="sm" /><div><strong class="block text-xs text-slate-800">{{ $transaction->product->code }} — {{ $transaction->product->name }}</strong><span class="text-[10px] text-slate-400">คืนจาก {{ $document->reference_no }}</span></div></div></td><td><span class="badge-slate">{{ $transaction->product->product_type->value }}</span></td><td class="text-right"><strong>{{ \App\Support\Quantity::format($transactionQuantity) }}</strong> {{ $transaction->product->unit->name }}</td></tr>
+                    @endforeach
+                    @else
                     @foreach($document->items as $item)
                     <tr>
                         <td><div class="flex items-start gap-3"><x-product-image :product="$item->product" size="sm" /><div><strong class="block text-xs text-slate-800">{{ $item->product->code }} — {{ $item->product->name }}</strong>@if($item->options->isNotEmpty())<div class="mt-2 space-y-1">@foreach($item->options as $option)<span class="block rounded-md bg-violet-50 px-2 py-1 text-[10px] text-violet-700">{{ $option->optionItem->group->name }}: {{ $option->optionItem->optionProduct->name }} × {{ \App\Support\Quantity::format($option->quantity) }}</span>@endforeach</div>@endif</div></div></td>
@@ -52,6 +62,7 @@
                         @if($showPrice)<td class="text-right">฿{{ number_format((float) $item->unit_price, 2) }}</td><td class="text-right font-semibold text-slate-900">฿{{ number_format((float) $item->quantity * (float) $item->unit_price, 2) }}</td>@endif
                     </tr>
                     @endforeach
+                    @endif
                     </tbody>
                 </table>
             </div>
