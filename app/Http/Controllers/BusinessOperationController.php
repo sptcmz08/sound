@@ -165,7 +165,7 @@ class BusinessOperationController extends Controller
             ],
             'claim' => [
                 'title' => 'รับเคลมจากลูกค้า', 'subtitle' => 'รับ PART, WIP หรือ FG ที่ลูกค้าส่งเคลมกลับเข้าสต็อกแยกจากยอดขาย',
-                'document_type' => StockDocumentType::CLAIM_IN, 'product_types' => null,
+                'document_type' => StockDocumentType::CLAIM_IN, 'product_types' => [ProductType::PART->value, ProductType::WIP->value, ProductType::FG->value],
                 'party_label' => 'ลูกค้า', 'party_required' => true, 'note_required' => true, 'cost_input' => false, 'price_input' => false, 'direction' => 'in',
             ],
             'waste' => [

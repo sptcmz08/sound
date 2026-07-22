@@ -26,7 +26,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $selectedType = $request->input('type', ProductType::PART->value);
-        $products = Product::with('unit')->withCount('components')->withSum('balances', 'quantity')
+        $products = Product::with('unit')->withCount(['components', 'optionGroups'])->withSum('balances', 'quantity')
             ->when($request->q, fn ($query, $value) => $query->where(
                 fn ($inner) => $inner->where('code', 'like', "%{$value}%")->orWhere('name', 'like', "%{$value}%")
             ))
@@ -38,14 +38,20 @@ class ProductController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $units = Unit::where('is_active', true)->orderBy('code')->get();
         if ($units->isEmpty()) {
             return redirect()->route('settings')->withErrors(['unit' => 'กรุณาเพิ่มหน่วยนับก่อนเพิ่มสินค้า']);
         }
 
-        return view('products.form', $this->formData(new Product, $units));
+        $product = new Product;
+        $requestedType = $request->query('type');
+        if (in_array($requestedType, array_column(ProductType::cases(), 'value'), true)) {
+            $product->product_type = ProductType::from($requestedType);
+        }
+
+        return view('products.form', $this->formData($product, $units));
     }
 
     public function store(ProductRequest $request, AuditLogService $audit)

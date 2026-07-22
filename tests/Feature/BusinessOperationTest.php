@@ -60,6 +60,15 @@ class BusinessOperationTest extends TestCase
             ->assertOk()
             ->assertSee('สูตรผลิต FG (BOM)')
             ->assertSee('Option สำหรับหน้าขาย');
+        $this->actingAs($this->admin)->get(route('products.create', ['type' => 'SUPPLY']))
+            ->assertOk()
+            ->assertSee('value="SUPPLY" selected', false);
+        $this->actingAs($this->admin)->get(route('operations.create', 'claim'))
+            ->assertOk()
+            ->assertSee($this->part->code)
+            ->assertSee($this->wip->code)
+            ->assertSee($this->fg->code)
+            ->assertDontSee($this->supply->code);
     }
 
     public function test_supplier_sale_claim_and_waste_update_stock_and_financial_data(): void
@@ -80,6 +89,7 @@ class BusinessOperationTest extends TestCase
 
         $this->postOperation('claim', $this->wip, 2, ['contact_name' => 'Customer B', 'note' => 'ชำรุดจากลูกค้า'])->assertRedirect();
         $this->assertSame('5', StockBalance::where('product_id', $this->wip->id)->value('quantity'));
+        $this->postOperation('claim', $this->supply, 1, ['contact_name' => 'Customer B', 'note' => 'ประเภทไม่รองรับ'])->assertSessionHasErrors('items');
 
         $this->postOperation('waste', $this->part, 1, ['note' => 'เสียจากการผลิต'])->assertRedirect();
         $this->assertSame('9', StockBalance::where('product_id', $this->part->id)->value('quantity'));

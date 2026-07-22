@@ -17,6 +17,14 @@
         </div>
     </div>
 
+    @if($operation === 'supplier-receive')
+    <div class="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
+        @foreach(['' => 'ทั้งหมด', 'PART' => 'PART อะไหล่', 'SUPPLY' => 'SUPPLY สิ้นเปลือง', 'WIP' => 'WIP', 'FG' => 'FG'] as $typeValue => $typeLabel)
+        <a href="{{ route('operations.create', ['operation' => 'supplier-receive', 'type' => $typeValue ?: null]) }}" class="min-w-max flex-1 rounded-lg px-4 py-2 text-center text-xs font-semibold no-underline transition {{ request('type', '') === $typeValue ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">{{ $typeLabel }}</a>
+        @endforeach
+    </div>
+    @endif
+
     <form id="operation-form" method="post" action="{{ route('operations.store', $operation) }}" class="space-y-6">
         @csrf
         <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">

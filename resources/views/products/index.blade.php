@@ -19,7 +19,7 @@
         <div><span class="page-kicker">ข้อมูลหลัก</span><h2 class="page-title">รายการสินค้า</h2><p class="page-subtitle">จัดการ PART, SUPPLY, WIP และ FG จากหน้ากลางเดียว</p></div>
         <div class="flex flex-wrap gap-2">
             @if(auth()->user()->canOperateStock())<a href="{{ route('operations.create', 'supplier-receive') }}" class="btn-success">รับสินค้าเข้า</a>@endif
-            @if(auth()->user()->isAdmin())<a href="{{ route('products.import.form') }}" class="btn-secondary">Import</a><a href="{{ route('products.create') }}" class="btn-primary">+ เพิ่มสินค้า</a>@endif
+            @if(auth()->user()->isAdmin())<a href="{{ route('products.import.form') }}" class="btn-secondary">Import</a><a href="{{ route('products.create', ['type' => $selectedType]) }}" class="btn-primary">+ เพิ่ม {{ $selectedType }}</a>@endif
         </div>
     </div>
 
@@ -57,6 +57,7 @@
                         <td>
                             @if(in_array($product->product_type->value, ['WIP', 'FG'], true))
                                 <span class="badge-blue">BOM {{ $product->components_count }} รายการ</span>
+                                @if($product->product_type->value === 'FG' && $product->option_groups_count)<span class="badge-wip">Option {{ $product->option_groups_count }} กลุ่ม</span>@endif
                             @else
                                 <span class="text-[10px] text-slate-400">ไม่ใช้สูตร</span>
                             @endif
