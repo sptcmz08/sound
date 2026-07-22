@@ -21,9 +21,9 @@
     @endif
 </div>
 
-<div class="mb-5 grid grid-cols-4 gap-2 rounded-2xl bg-slate-100 p-2">
-    @foreach(['PART'=>'PART','SUPPLY'=>'SUPPLY','WIP'=>'WIP','FG'=>'FG'] as $value=>$label)
-    <a href="{{route('products.index',['type'=>$value])}}" class="rounded-xl px-4 py-3 text-center font-bold transition {{request('type','PART')===$value?'bg-white text-blue-700 shadow-sm':'text-slate-500 hover:text-slate-800'}}">{{$label}}</a>
+<div class="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-2 sm:grid-cols-4">
+    @foreach(['PART'=>'PART (อะไหล่ผลิต)','SUPPLY'=>'SUPPLY (วัสดุสิ้นเปลือง)','WIP'=>'WIP (งานประกอบ)','FG'=>'FG (สินค้าสำเร็จรูป)'] as $value=>$label)
+    <a href="{{route('products.index',['type'=>$value])}}" class="rounded-xl px-4 py-3 text-center text-sm font-bold transition {{request('type','PART')===$value?'bg-white text-blue-700 shadow-sm':'text-slate-500 hover:text-slate-800'}}">{{$label}}</a>
     @endforeach
 </div>
 <form class="panel mb-5 flex flex-wrap gap-3 p-4">

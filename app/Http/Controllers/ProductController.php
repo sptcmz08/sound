@@ -64,6 +64,7 @@ class ProductController extends Controller
                 $data['image_path'] = $request->file('image')->store('products', 'public');
             }
             $this->validateComponents($data['product_type'], $request->input('components', []));
+            $this->validateOptionGroups($data['product_type'], $request->input('option_groups', []));
             $product = Product::create($data);
             $this->syncComponents($product, $request->input('components', []));
             $this->syncOptionGroups($product, $request->input('option_groups', []));
@@ -72,7 +73,7 @@ class ProductController extends Controller
             return $product;
         });
 
-        return redirect()->route('products.index')->with('success', "เพิ่ม {$product->name} และสูตรส่วนประกอบแล้ว");
+        return redirect()->route('products.index')->with('success', "เพิ่ม {$product->name} แล้ว");
     }
 
     public function edit(Product $product)
@@ -98,6 +99,7 @@ class ProductController extends Controller
                 $data['image_path'] = $request->file('image')->store('products', 'public');
             }
             $this->validateComponents($data['product_type'], $request->input('components', []), $product->id);
+            $this->validateOptionGroups($data['product_type'], $request->input('option_groups', []));
             $product->update($data);
             $this->syncComponents($product, $request->input('components', []));
             $this->syncOptionGroups($product, $request->input('option_groups', []));
@@ -200,5 +202,32 @@ class ProductController extends Controller
             $group->items()->whereNotIn('id', $existingItemIds)->delete();
         }
         $product->optionGroups()->whereNotIn('id', $existingGroupIds)->delete();
+    }
+
+    private function validateOptionGroups(string $typeValue, array $optionGroups): void
+    {
+        $type = ProductType::from($typeValue);
+        if ($type !== ProductType::FG && count($optionGroups)) {
+            throw ValidationException::withMessages(['option_groups' => 'สินค้าประเภท FG เท่านั้นที่สามารถกำหนดตัวเลือกเสริม (Options) ได้']);
+        }
+        if ($type === ProductType::FG) {
+            foreach ($optionGroups as $g) {
+                if (blank($g['name'] ?? null)) {
+                    throw ValidationException::withMessages(['option_groups' => 'กรุณาระบุชื่อกลุ่ม Option']);
+                }
+                $items = array_filter($g['items'] ?? [], fn ($i) => ! empty($i['option_product_id']));
+                if (empty($items)) {
+                    throw ValidationException::withMessages(['option_groups' => "กลุ่ม '{$g['name']}' ต้องมีรายการตัวเลือกอย่างน้อย 1 รายการ"]);
+                }
+                $optionProductIds = collect($items)->pluck('option_product_id');
+                $optionProducts = Product::whereIn('id', $optionProductIds)->get()->keyBy('id');
+                foreach ($items as $item) {
+                    $optProduct = $optionProducts->get((int) $item['option_product_id']);
+                    if (! $optProduct || ! $optProduct->is_active || ! in_array($optProduct->product_type, [ProductType::PART, ProductType::WIP], true)) {
+                        throw ValidationException::withMessages(['option_groups' => "รายการ Option ในกลุ่ม '{$g['name']}' ต้องเป็นสินค้าประเภท PART หรือ WIP ที่เปิดใช้งานเท่านั้น"]);
+                    }
+                }
+            }
+        }
     }
 }

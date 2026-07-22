@@ -62,6 +62,20 @@ class BusinessOperationController extends Controller
     public function store(Request $request, string $operation, StockService $stock)
     {
         $config = $this->config($operation);
+
+        $rawItems = $request->input('items', []);
+        if (is_array($rawItems)) {
+            foreach ($rawItems as &$line) {
+                if (isset($line['options']) && is_array($line['options'])) {
+                    $line['options'] = array_values(array_filter($line['options'], function ($opt) {
+                        return ! empty($opt['product_option_item_id']);
+                    }));
+                }
+            }
+            unset($line);
+            $request->merge(['items' => $rawItems]);
+        }
+
         $rules = [
             'document_date' => ['required', 'date'],
             'warehouse_id' => ['required', 'exists:warehouses,id'],
@@ -78,11 +92,21 @@ class BusinessOperationController extends Controller
             'items.*.options.*.product_option_item_id' => ['required', 'integer', 'exists:product_option_items,id'],
         ];
         $data = $request->validate($rules);
-        $products = Product::whereIn('id', collect($data['items'])->pluck('product_id'))->get()->keyBy('id');
+        $products = Product::with(['optionGroups.items'])->whereIn('id', collect($data['items'])->pluck('product_id'))->get()->keyBy('id');
         foreach ($data['items'] as $line) {
             $product = $products->get((int) $line['product_id']);
             if (! $product || ! $product->is_active || ($config['product_types'] && ! in_array($product->product_type->value, $config['product_types'], true))) {
                 throw ValidationException::withMessages(['items' => 'พบรายการที่ไม่ตรงกับประเภทของงานนี้']);
+            }
+
+            if ($product->product_type === ProductType::FG && $product->optionGroups->where('is_required', true)->count() > 0) {
+                $selectedOptionItemIds = collect($line['options'] ?? [])->pluck('product_option_item_id')->map(fn ($id) => (int) $id)->all();
+                foreach ($product->optionGroups->where('is_required', true) as $reqGroup) {
+                    $groupItemIds = $reqGroup->items->pluck('id')->all();
+                    if (! array_intersect($groupItemIds, $selectedOptionItemIds)) {
+                        throw ValidationException::withMessages(['items' => "กรุณาเลือกตัวเลือกในกลุ่ม '{$reqGroup->name}' สำหรับสินค้า {$product->name}"]);
+                    }
+                }
             }
         }
 

@@ -39,7 +39,7 @@
             </div>
             <label><span class="label">รหัสสินค้า *</span><input name="code" class="input" value="{{old('code',$product->code)}}" required></label>
             <label><span class="label">ชื่อสินค้า *</span><input name="name" class="input" value="{{old('name',$product->name)}}" required></label>
-            <label><span class="label">ประเภท *</span><select name="product_type" id="product-type" class="select" required><option value="PART" @selected($currentType==='PART')>PART (ชิ้นส่วนอะไหล่)</option><option value="SUPPLY" @selected($currentType==='SUPPLY')>SUPPLY (วัสดุสิ้นเปลือง)</option><option value="WIP" @selected($currentType==='WIP')>WIP (งานระหว่างประกอบ)</option><option value="FG" @selected($currentType==='FG')>FG (สินค้าสำเร็จรูป)</option></select></label>
+            <label><span class="label">ประเภท *</span><select name="product_type" id="product-type" class="select" required><option value="PART" @selected($currentType==='PART')>PART (อะไหล่/ชิ้นส่วนผลิต - กำหนดจำนวนได้ชัดเจน)</option><option value="SUPPLY" @selected($currentType==='SUPPLY')>SUPPLY (วัสดุสิ้นเปลือง - ไม่ระบุจำนวนต่อชิ้นงาน)</option><option value="WIP" @selected($currentType==='WIP')>WIP (งานระหว่างประกอบ)</option><option value="FG" @selected($currentType==='FG')>FG (สินค้าสำเร็จรูป)</option></select></label>
             <label><span class="label">หน่วยนับ *</span><select name="unit_id" class="select" required>@foreach($units as $unit)<option value="{{$unit->id}}" @selected(old('unit_id',$product->unit_id)==$unit->id)>{{$unit->name}} ({{$unit->code}})</option>@endforeach</select></label>
             <label><span class="label">จุดเตือนสต็อกต่ำ</span><input type="number" min="0" step="0.0001" name="minimum_stock" class="input" value="{{old('minimum_stock',$product->minimum_stock ?? 0)}}" required></label>
             <label><span class="label">ต้นทุนมาตรฐาน / หน่วย *</span><input type="number" min="0" step="0.0001" name="standard_cost" class="input" value="{{old('standard_cost',$product->standard_cost ?? 0)}}" required></label>
@@ -51,12 +51,12 @@
     </section>
 
     <section class="panel" id="recipe-panel">
-        <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">สูตรส่วนประกอบต่อ 1 ชิ้น</h3><p class="mt-1 text-slate-500" id="recipe-help"></p></div><button type="button" id="add-component" class="btn-secondary">+ เพิ่มส่วนประกอบ</button></div>
+        <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">สูตรส่วนประกอบต่อ 1 ชิ้น (BOM)</h3><p class="mt-1 text-slate-500" id="recipe-help"></p></div><button type="button" id="add-component" class="btn-secondary">+ เพิ่มส่วนประกอบ</button></div>
         <div class="panel-body space-y-3" id="component-list"></div>
     </section>
 
-    <section class="panel" id="options-panel">
-        <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">ตัวเลือกเสริมสำหรับขาย (Options)</h3><p class="mt-1 text-slate-500">กำหนดกลุ่มและรายการตัวเลือก (WIP/PART) สำหรับให้พนักงานเลือกตัดสต็อกตอนขาย</p></div><button type="button" id="add-option-group" class="btn-secondary">+ เพิ่มกลุ่ม Option</button></div>
+    <section class="panel border-2 border-violet-200" id="options-panel">
+        <div class="panel-header bg-gradient-to-r from-violet-50 to-purple-50"><div><h3 class="text-xl font-bold text-violet-950">⚙️ ตัวเลือกเสริมสำหรับขาย (Option Groups)</h3><p class="mt-1 text-violet-700">กำหนดกลุ่มตัวเลือกเสริม (เช่น หูหิ้ว/สายสะพาย, คาราโอเกะ) โดยดึงสินค้า **WIP** หรือ **PART** มาเป็นตัวเลือก เพื่อให้ระบบตัดสต็อกอัตโนมัติเมื่อขายสินค้า FG นี้</p></div><button type="button" id="add-option-group" class="btn-primary">+ เพิ่มกลุ่ม Option</button></div>
         <div class="panel-body space-y-6" id="option-group-list"></div>
     </section>
 
@@ -71,7 +71,7 @@ imageInput?.addEventListener('change',()=>{const file=imageInput.files?.[0];if(!
 
 let rows = @json($oldComponents);
 const list=document.getElementById('component-list'), type=document.getElementById('product-type'), panel=document.getElementById('recipe-panel');
-function options(selected){const allowed=products.filter(p=>type.value==='FG'||p.type==='PART');return '<option value="">เลือกส่วนประกอบ</option>'+allowed.map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${p.code} — ${p.name} (${p.type})</option>`).join('')}
+function options(selected){const allowed=products.filter(p=>type.value==='WIP'?p.type==='PART':['PART','WIP'].includes(p.type));return '<option value="">เลือกส่วนประกอบ</option>'+allowed.map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${p.code} — ${p.name} (${p.type})</option>`).join('')}
 function render(){panel.classList.toggle('hidden',['PART', 'SUPPLY'].includes(type.value));document.getElementById('recipe-help').textContent=type.value=='WIP'?'WIP ใช้ PART เป็นส่วนประกอบ':'FG ใช้ได้ทั้ง PART และ WIP';list.innerHTML=rows.map((r,i)=>`<div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_220px_auto]"><select class="select" name="components[${i}][product_id]" required>${options(r.product_id)}</select><input class="input" type="number" min="0.0001" step="0.0001" name="components[${i}][quantity]" value="${r.quantity||1}" placeholder="จำนวนต่อ 1 ชิ้น" required><button type="button" class="btn-danger" onclick="rows.splice(${i},1);render()">ลบ</button></div>`).join('')||'<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีส่วนประกอบ กด “เพิ่มส่วนประกอบ”</div>'}
 type.addEventListener('change',()=>{rows=[];optionGroups=[];render();renderOptions()});document.getElementById('add-component').addEventListener('click',()=>{rows.push({product_id:'',quantity:1});render()});
 

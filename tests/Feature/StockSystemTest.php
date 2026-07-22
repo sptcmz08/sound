@@ -263,7 +263,7 @@ class StockSystemTest extends TestCase
             'unit_id' => $this->unit->id,
             'minimum_stock' => '5',
             'is_active' => '1',
-            'image' => UploadedFile::fake()->image('part.jpg', 300, 300),
+            'image' => UploadedFile::fake()->create('part.jpg', 10, 'image/jpeg'),
         ])->assertRedirect(route('products.index'));
 
         $product = $this->part->fresh();
