@@ -117,7 +117,12 @@ class RequisitionWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('id="request-type" value="ISSUE_WIP"', false)
             ->assertDontSee('value="GENERAL_ISSUE"', false)
-            ->assertSee('วัตถุประสงค์');
+            ->assertSee('+ เพิ่มแถว')
+            ->assertSee('cart-product-select', false)
+            ->assertSee('ยืนยันการเบิก')
+            ->assertDontSee('แผนก / หน่วยงาน')
+            ->assertDontSee('วัตถุประสงค์')
+            ->assertDontSee('หมายเหตุ');
 
         $this->actingAs($this->staff)->post(route('requisitions.store'), [
             'request_type' => RequisitionType::ISSUE_WIP->value,

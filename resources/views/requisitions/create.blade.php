@@ -109,16 +109,11 @@
         @unless($isProduction)
         <div id="requisition-cart-backdrop" class="fixed inset-0 z-[60] hidden bg-slate-950/40 backdrop-blur-sm"></div>
         <aside id="requisition-cart" class="fixed left-1/2 top-1/2 z-[70] hidden max-h-[90vh] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="requisition-cart-title">
-            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h3 id="requisition-cart-title" class="text-lg font-bold text-slate-900">รายการเบิกสินค้า</h3><p class="text-xs text-slate-500">ตรวจสินค้า จำนวน และข้อมูลใบเบิกก่อนส่ง</p></div><button type="button" id="close-requisition-cart" class="grid size-10 place-items-center rounded-lg text-xl text-slate-500 hover:bg-slate-100" aria-label="ปิดรายการเบิก">×</button></div>
-            <div class="flex-1 space-y-5 overflow-y-auto p-5">
-                <section class="rounded-xl border border-slate-200 p-4">
-                    <div class="mb-4"><span class="label">ประเภทใบเบิก</span><strong id="selected-type-label" class="block text-sm text-slate-800">เลือกสินค้าจากรายการ</strong></div>
-                    <div class="grid gap-3 sm:grid-cols-2"><label><span class="label">แผนก / หน่วยงาน</span><input class="input" name="department_name" value="{{ old('department_name') }}" placeholder="เช่น ฝ่ายผลิต"></label><label><span class="label">วัตถุประสงค์</span><input class="input" name="purpose" value="{{ old('purpose') }}" placeholder="ระบบจะใช้ชื่อประเภทหากไม่ระบุ"></label></div>
-                    <label class="mt-3 block"><span class="label">หมายเหตุ</span><textarea class="input" name="note" rows="2" placeholder="รายละเอียดเพิ่มเติม">{{ old('note') }}</textarea></label>
-                </section>
-                <section><div class="mb-3 flex items-center justify-between"><div><h4 class="text-sm font-semibold text-slate-800">สินค้าที่เลือก</h4><p class="text-xs text-slate-400">แก้ไขจำนวนหรือลบรายการได้</p></div><span class="badge-blue"><span id="drawer-cart-count">0</span> รายการ</span></div><div id="item-list" class="space-y-2"></div><div id="empty-items" class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่ได้เลือกสินค้า กด “เบิก” จากรายการสินค้า</div></section>
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h3 id="requisition-cart-title" class="text-lg font-bold text-slate-900">รายการเบิกสินค้า</h3><p class="text-xs text-slate-500">เลือกสินค้า ระบุจำนวน และตรวจสอบให้ครบก่อนยืนยัน</p></div><button type="button" id="close-requisition-cart" class="grid size-10 place-items-center rounded-lg text-xl text-slate-500 hover:bg-slate-100" aria-label="ปิดรายการเบิก">×</button></div>
+            <div class="flex-1 overflow-y-auto p-5">
+                <section><div class="mb-3 flex items-center justify-between"><div><h4 class="text-sm font-semibold text-slate-800">สินค้าที่เลือก</h4><p class="text-xs text-slate-400">ใช้ Dropdown เปลี่ยนสินค้าและแก้ไขจำนวนได้</p></div><div class="flex items-center gap-2"><span class="badge-blue"><span id="drawer-cart-count">0</span> รายการ</span><button type="button" id="add-cart-row" class="btn-secondary">+ เพิ่มแถว</button></div></div><div class="hidden grid-cols-[minmax(0,1fr)_140px_140px_40px] gap-3 px-3 pb-2 text-[11px] font-semibold text-slate-400 md:grid"><span>สินค้า</span><span>คงเหลือ</span><span>จำนวนเบิก</span><span></span></div><div id="item-list" class="space-y-2"></div><div id="empty-items" class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่ได้เลือกสินค้า กด “+ เพิ่มแถว” หรือกด “เบิก” จากรายการสินค้า</div></section>
             </div>
-            <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4"><button type="button" id="continue-shopping" class="btn-secondary">เลือกสินค้าต่อ</button><button class="btn-primary px-6">ส่งคำขอเบิก</button></div>
+            <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4"><button type="button" id="continue-shopping" class="btn-secondary">เลือกสินค้าต่อ</button><button class="btn-primary px-6">ยืนยันการเบิก</button></div>
         </aside>
         @endunless
     </form>
@@ -147,7 +142,6 @@ const isAdmin = @json(auth()->user()->isAdmin());
 const escapeValue = value => String(value ?? '').replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[character]));
 const requestTypeByProduct = {PART:'ISSUE_PART', SUPPLY:'ISSUE_SUPPLY', WIP:'ISSUE_WIP', FG:'ISSUE_FG'};
 const typeLabels = {PART:'PART', SUPPLY:'สิ้นเปลือง', WIP:'WIP', FG:'FG'};
-const requestLabels = {ISSUE_PART:'เบิก PART', ISSUE_SUPPLY:'เบิกสิ้นเปลือง', ISSUE_WIP:'เบิก WIP', ISSUE_FG:'เบิก FG'};
 const selectedType = () => requestTypeInput?.value ?? typeInputs.find(input => input.checked)?.value ?? (requisitionMode === 'production' ? 'BUILD_WIP' : 'ISSUE_PART');
 const outputType = () => selectedType() === 'BUILD_WIP' ? 'WIP' : 'FG';
 const productById = id => requisitionProducts.find(product => String(product.id) === String(id));
@@ -167,10 +161,17 @@ function balanceFor(product) {
 
 function syncRequestType() {
     if (!requestTypeInput) return;
-    const firstProduct = productById(requisitionRows[0]?.product_id);
+    const firstProduct = requisitionRows.map(row => productById(row.product_id)).find(Boolean);
     requestTypeInput.value = firstProduct ? requestTypeByProduct[firstProduct.type] : 'ISSUE_PART';
-    const label = document.getElementById('selected-type-label');
-    if (label) label.textContent = firstProduct ? requestLabels[requestTypeInput.value] : 'เลือกสินค้าจากรายการ';
+}
+
+function cartProductOptions(selectedId = '', rowIndex = -1) {
+    const otherProduct = requisitionRows
+        .filter((row, index) => index !== rowIndex)
+        .map(row => productById(row.product_id))
+        .find(Boolean);
+    const products = otherProduct ? requisitionProducts.filter(product => product.type === otherProduct.type) : requisitionProducts;
+    return '<option value="">— เลือกสินค้า —</option>' + products.map(product => `<option value="${product.id}" ${String(product.id) === String(selectedId) ? 'selected' : ''}>[${escapeValue(typeLabels[product.type] ?? product.type)}] ${escapeValue(product.code)} — ${escapeValue(product.name)}</option>`).join('');
 }
 
 function openCart() {
@@ -216,12 +217,14 @@ function renderCatalog() {
 function addProduct(productId) {
     const product = productById(productId);
     if (!product || requisitionRows.some(row => String(row.product_id) === String(productId))) return;
-    const firstProduct = productById(requisitionRows[0]?.product_id);
+    const firstProduct = requisitionRows.map(row => productById(row.product_id)).find(Boolean);
     if (firstProduct && firstProduct.type !== product.type) {
         alert(`หนึ่งใบเบิกเลือกสินค้าได้ประเภทเดียวกัน กรุณาส่งใบเบิก ${typeLabels[firstProduct.type]} ก่อน`);
         return;
     }
-    requisitionRows.push({product_id: product.id, quantity: 1});
+    const blankRow = requisitionRows.find(row => !row.product_id);
+    if (blankRow) blankRow.product_id = product.id;
+    else requisitionRows.push({product_id: product.id, quantity: 1});
     syncRequestType();
     renderItems();
     renderCatalog();
@@ -231,8 +234,8 @@ function renderItems() {
     if (!itemList) return;
     itemList.innerHTML = requisitionRows.map((row, index) => {
         const product = productById(row.product_id);
-        return `<div class="grid items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[minmax(0,1fr)_150px_170px_44px]">
-            <div><span class="label md:hidden">สินค้า</span><input type="hidden" name="items[${index}][product_id]" value="${escapeValue(product?.id)}"><div class="flex items-center gap-2">${imageFor(product)}<div><strong class="block text-xs text-slate-800">${escapeValue(product?.code)}</strong><span class="text-[10px] text-slate-400">${escapeValue(product?.name)}</span></div></div></div>
+        return `<div class="grid items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[minmax(0,1fr)_140px_140px_40px]">
+            <label><span class="label md:hidden">สินค้า</span><div class="flex items-center gap-3">${imageFor(product)}<select class="select cart-product-select min-w-0" name="items[${index}][product_id]" data-item-product="${index}" required>${cartProductOptions(row.product_id, index)}</select></div></label>
             <div><span class="label md:hidden">คงเหลือ</span><span class="block rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">${balanceFor(product)}</span></div>
             <label><span class="label md:hidden">จำนวนเบิก</span><input class="input text-right font-semibold" name="items[${index}][quantity]" data-item-quantity="${index}" type="number" min="0.0001" step="0.0001" value="${escapeValue(row.quantity || 1)}" required></label>
             <button type="button" class="grid size-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50" data-remove-item="${index}" aria-label="ลบ">×</button>
@@ -241,6 +244,20 @@ function renderItems() {
     document.getElementById('empty-items')?.classList.toggle('hidden', requisitionRows.length > 0);
     document.getElementById('cart-count')?.replaceChildren(document.createTextNode(String(requisitionRows.length)));
     document.getElementById('drawer-cart-count')?.replaceChildren(document.createTextNode(String(requisitionRows.length)));
+    itemList.querySelectorAll('[data-item-product]').forEach(select => select.addEventListener('change', event => {
+        const index = Number(event.target.dataset.itemProduct);
+        const product = productById(event.target.value);
+        const otherProduct = requisitionRows.filter((row, rowIndex) => rowIndex !== index).map(row => productById(row.product_id)).find(Boolean);
+        if (product && otherProduct && product.type !== otherProduct.type) {
+            alert(`หนึ่งใบเบิกเลือกสินค้าได้ประเภทเดียวกัน กรุณาเลือก ${typeLabels[otherProduct.type]}`);
+            renderItems();
+            return;
+        }
+        requisitionRows[index].product_id = event.target.value;
+        syncRequestType();
+        renderItems();
+        renderCatalog();
+    }));
     itemList.querySelectorAll('[data-item-quantity]').forEach(input => input.addEventListener('input', event => { requisitionRows[Number(event.target.dataset.itemQuantity)].quantity = event.target.value; }));
     itemList.querySelectorAll('[data-remove-item]').forEach(button => button.addEventListener('click', () => {
         requisitionRows.splice(Number(button.dataset.removeItem), 1);
@@ -291,6 +308,10 @@ targetInput?.addEventListener('change', event => { selectedTarget = event.target
 document.getElementById('open-requisition-cart')?.addEventListener('click', openCart);
 document.getElementById('close-requisition-cart')?.addEventListener('click', closeCart);
 document.getElementById('continue-shopping')?.addEventListener('click', closeCart);
+document.getElementById('add-cart-row')?.addEventListener('click', () => {
+    requisitionRows.push({product_id: '', quantity: 1});
+    renderItems();
+});
 cartBackdrop?.addEventListener('click', closeCart);
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeCart(); });
 document.getElementById('requisition-form').addEventListener('submit', event => {
