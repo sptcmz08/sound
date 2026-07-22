@@ -20,7 +20,7 @@
     ])->values()->all() : []);
 @endphp
 <div class="mb-7 flex items-start justify-between gap-4">
-    <div><h2 class="page-title">{{ $product->exists ? 'แก้ไขรายการ' : 'สร้างรายการใหม่' }}</h2><p class="page-subtitle">PART คือชิ้นส่วนที่ระบุจำนวนใน BOM ได้ ส่วน SUPPLY คือวัสดุสิ้นเปลืองที่แยกเก็บและไม่ผูกจำนวนต่อชิ้นงาน</p></div>
+    <div><span class="page-kicker">ข้อมูลหลัก {{ $currentType }}</span><h2 class="page-title">{{ $product->exists ? 'แก้ไข '.$currentType : 'เพิ่ม '.$currentType }}</h2><p class="page-subtitle">PART คือชิ้นส่วนที่ระบุจำนวนใน BOM ได้ ส่วน SUPPLY คือวัสดุสิ้นเปลืองที่ไม่ผูกจำนวนต่อชิ้นงาน</p></div>
     <a href="{{route('products.index')}}" class="btn-secondary">กลับ</a>
 </div>
 <form method="post" action="{{$product->exists ? route('products.update',$product) : route('products.store')}}" enctype="multipart/form-data" class="space-y-6" id="product-form">
@@ -69,7 +69,7 @@
     </section>
 
     <section class="panel border-2 border-violet-200" id="options-panel">
-        <div class="panel-header bg-gradient-to-r from-violet-50 to-purple-50"><div><h3 class="text-xl font-bold text-violet-950">⚙️ ตัวเลือกเสริมสำหรับขาย (Option Groups)</h3><p class="mt-1 text-violet-700">สร้างกลุ่ม เช่น “รูปแบบการถือ” หรือ “ระบบคาราโอเกะ” แล้วดึง <strong>WIP</strong> หรือ <strong>PART</strong> มาเป็นตัวเลือก ระบบจะตัดสต็อกตามจำนวนที่กำหนดเมื่อขาย FG</p></div><button type="button" id="add-option-group" class="btn-primary">+ เพิ่มกลุ่ม Option</button></div>
+        <div class="panel-header bg-violet-50"><div><h3 class="section-title text-violet-950">ตัวเลือกเสริมสำหรับขาย (Option Groups)</h3><p class="section-subtitle text-violet-700">สร้างกลุ่ม เช่น รูปแบบการถือหรือระบบคาราโอเกะ แล้วเลือก WIP/PART ที่ต้องตัดสต็อกเมื่อขาย FG</p></div><button type="button" id="add-option-group" class="btn-primary">+ เพิ่มกลุ่ม Option</button></div>
         <div class="panel-body space-y-6" id="option-group-list"></div>
     </section>
 

@@ -32,7 +32,7 @@
 <div class="mx-auto max-w-6xl space-y-6">
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div class="flex items-start gap-4">
-            <span class="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 text-white shadow-lg shadow-violet-500/20">
+            <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-violet-100 text-violet-700">
                 <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 21V10l5 3V9l5 3V4h4v17M3 21h18"/></svg>
             </span>
             <div>
@@ -99,12 +99,12 @@
             </div>
         </section>
 
-        <div class="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
             <div class="flex items-center gap-3">
                 <span class="grid size-10 shrink-0 place-items-center rounded-full bg-violet-100 text-violet-700"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 13 4 4L19 7"/></svg></span>
                 <div><strong class="block text-lg text-slate-950">ตรวจรายการแล้วกดผลิต WIP</strong><span class="text-sm text-slate-500">สูตร WIP จะถูกบันทึกอัตโนมัติ และส่งรายการให้แอดมินอนุมัติตัดสต็อก</span></div>
             </div>
-            <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 px-7 py-3 text-base font-semibold text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 focus:outline-none focus:ring-4 focus:ring-violet-100">
+            <button class="btn-primary px-7">
                 <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
                 ผลิต WIP
             </button>
