@@ -102,6 +102,7 @@ class ReportController extends Controller
     {
         $rows = StockDocument::with(['items.product.unit', 'warehouse', 'creator'])
             ->whereIn('document_type', $types)
+            ->where('status', 'POSTED')
             ->when($request->date_from, fn ($query, $value) => $query->whereDate('document_date', '>=', $value))
             ->when($request->date_to, fn ($query, $value) => $query->whereDate('document_date', '<=', $value))
             ->latest('document_date')->latest('id')->paginate(30)->withQueryString();
