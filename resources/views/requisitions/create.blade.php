@@ -108,12 +108,12 @@
 
         @unless($isProduction)
         <div id="requisition-cart-backdrop" class="fixed inset-0 z-[60] hidden bg-slate-950/40 backdrop-blur-sm"></div>
-        <aside id="requisition-cart" class="fixed left-1/2 top-1/2 z-[70] hidden max-h-[90vh] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="requisition-cart-title">
-            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h3 id="requisition-cart-title" class="text-lg font-bold text-slate-900">รายการเบิกสินค้า</h3><p class="text-xs text-slate-500">เลือกสินค้า ระบุจำนวน และตรวจสอบให้ครบก่อนยืนยัน</p></div><button type="button" id="close-requisition-cart" class="grid size-10 place-items-center rounded-lg text-xl text-slate-500 hover:bg-slate-100" aria-label="ปิดรายการเบิก">×</button></div>
+        <aside id="requisition-cart" class="fixed left-1/2 top-1/2 z-[70] hidden max-h-[90vh] w-[calc(100%-2rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="requisition-cart-title">
+            <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4"><div><h3 id="requisition-cart-title" class="text-lg font-bold text-slate-900">รายการเบิก</h3><p class="text-xs text-slate-500">เลือกสินค้าและระบุจำนวนให้ครบก่อนยืนยันการเบิก</p></div><div class="flex items-center gap-2"><span class="badge-blue"><span id="drawer-cart-count">0</span> รายการ</span><button type="button" id="add-cart-row" class="btn-secondary">+ เพิ่มแถว</button><button type="button" id="close-requisition-cart" class="grid size-10 place-items-center rounded-lg text-xl text-slate-500 hover:bg-slate-100" aria-label="ปิดรายการเบิก">×</button></div></div>
             <div class="flex-1 overflow-y-auto p-5">
-                <section><div class="mb-3 flex items-center justify-between"><div><h4 class="text-sm font-semibold text-slate-800">สินค้าที่เลือก</h4><p class="text-xs text-slate-400">ใช้ Dropdown เปลี่ยนสินค้าและแก้ไขจำนวนได้</p></div><div class="flex items-center gap-2"><span class="badge-blue"><span id="drawer-cart-count">0</span> รายการ</span><button type="button" id="add-cart-row" class="btn-secondary">+ เพิ่มแถว</button></div></div><div class="hidden grid-cols-[minmax(0,1fr)_140px_140px_40px] gap-3 px-3 pb-2 text-[11px] font-semibold text-slate-400 md:grid"><span>สินค้า</span><span>คงเหลือ</span><span>จำนวนเบิก</span><span></span></div><div id="item-list" class="space-y-2"></div><div id="empty-items" class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่ได้เลือกสินค้า กด “+ เพิ่มแถว” หรือกด “เบิก” จากรายการสินค้า</div></section>
+                <div class="table-wrap rounded-xl border border-slate-200"><table class="data-table"><thead><tr><th class="min-w-[420px]">สินค้า *</th><th class="text-right">สต็อกคงเหลือ</th><th class="min-w-48">คลัง</th><th class="min-w-44">จำนวนเบิก *</th><th class="w-12"></th></tr></thead><tbody id="item-list"></tbody></table></div><div id="empty-items" class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ยังไม่ได้เลือกสินค้า กด “+ เพิ่มแถว” หรือกด “เบิก” จากรายการสินค้า</div>
             </div>
-            <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4"><button type="button" id="continue-shopping" class="btn-secondary">เลือกสินค้าต่อ</button><button class="btn-primary px-6">ยืนยันการเบิก</button></div>
+            <div class="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4"><button type="button" id="continue-shopping" class="btn-secondary">ยกเลิก</button><button class="btn-primary px-6">ยืนยันการเบิก</button></div>
         </aside>
         @endunless
     </form>
@@ -157,6 +157,10 @@ function imageFor(product, size = 'default') {
 function balanceFor(product) {
     if (!product || !warehouseInput.value) return '—';
     return `${escapeValue(product.balances[String(warehouseInput.value)] ?? '0')} ${escapeValue(product.unit)}`;
+}
+
+function warehouseName() {
+    return warehouseInput.selectedOptions[0]?.textContent.trim() || '—';
 }
 
 function syncRequestType() {
@@ -234,14 +238,16 @@ function renderItems() {
     if (!itemList) return;
     itemList.innerHTML = requisitionRows.map((row, index) => {
         const product = productById(row.product_id);
-        return `<div class="grid items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[minmax(0,1fr)_140px_140px_40px]">
-            <label><span class="label md:hidden">สินค้า</span><div class="flex items-center gap-3">${imageFor(product)}<select class="select cart-product-select min-w-0" name="items[${index}][product_id]" data-item-product="${index}" required>${cartProductOptions(row.product_id, index)}</select></div></label>
-            <div><span class="label md:hidden">คงเหลือ</span><span class="block rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">${balanceFor(product)}</span></div>
-            <label><span class="label md:hidden">จำนวนเบิก</span><input class="input text-right font-semibold" name="items[${index}][quantity]" data-item-quantity="${index}" type="number" min="0.0001" step="0.0001" value="${escapeValue(row.quantity || 1)}" required></label>
-            <button type="button" class="grid size-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50" data-remove-item="${index}" aria-label="ลบ">×</button>
-        </div>`;
+        return `<tr>
+            <td><div class="flex min-w-[400px] items-center gap-3">${imageFor(product, 'large')}<select class="select cart-product-select min-w-0 flex-1" name="items[${index}][product_id]" data-item-product="${index}" required>${cartProductOptions(row.product_id, index)}</select></div></td>
+            <td class="text-right"><strong class="text-sm text-slate-800">${balanceFor(product)}</strong></td>
+            <td><span class="block rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">${escapeValue(warehouseName())}</span></td>
+            <td><div class="flex items-stretch"><input class="input rounded-r-none text-right font-semibold" name="items[${index}][quantity]" data-item-quantity="${index}" type="number" min="0.0001" step="0.0001" value="${escapeValue(row.quantity || 1)}" required><span class="grid min-w-14 place-items-center rounded-r-lg border border-l-0 border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-500">${escapeValue(product?.unit ?? 'หน่วย')}</span></div></td>
+            <td><button type="button" class="grid size-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50" data-remove-item="${index}" aria-label="ลบ">×</button></td>
+        </tr>`;
     }).join('');
     document.getElementById('empty-items')?.classList.toggle('hidden', requisitionRows.length > 0);
+    itemList.closest('.table-wrap')?.classList.toggle('hidden', requisitionRows.length === 0);
     document.getElementById('cart-count')?.replaceChildren(document.createTextNode(String(requisitionRows.length)));
     document.getElementById('drawer-cart-count')?.replaceChildren(document.createTextNode(String(requisitionRows.length)));
     itemList.querySelectorAll('[data-item-product]').forEach(select => select.addEventListener('change', event => {
