@@ -211,7 +211,7 @@
             </div>
             <div class="panel-body space-y-5">
                 @foreach([
-                    ['1', 'รับเข้า (Supplier)', 'คีย์สินค้าประเภท PART หรือ SUPPLY เข้าคลัง', 'bg-emerald-500', 'text-emerald-500'],
+                    ['1', 'รับเข้า (Supplier)', 'รับ PART, SUPPLY, WIP หรือ FG เข้าคลัง', 'bg-emerald-500', 'text-emerald-500'],
                     ['2', 'ผลิต WIP / FG', 'เลือกชิ้นส่วนตาม BOM ประกอบเข้าสต็อก', 'bg-violet-500', 'text-violet-500'],
                     ['3', 'เบิกหรือขาย', 'เบิกอะไหล่ หรือขาย FG พร้อมเลือก Option', 'bg-blue-500', 'text-blue-500'],
                     ['4', 'อนุมัติและตัดสต็อก', 'ผู้ดูแลอนุมัติ พิมพ์ใบเบิก และตัดสต็อกอัตโนมัติ', 'bg-amber-500', 'text-amber-500'],
@@ -231,4 +231,3 @@
     </section>
 </div>
 @endsection
-

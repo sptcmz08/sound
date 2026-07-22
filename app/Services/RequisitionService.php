@@ -44,7 +44,13 @@ class RequisitionService
                 if ($target->product_type !== $expectedType || $target->components->isEmpty()) {
                     throw ValidationException::withMessages(['target_product_id' => 'สินค้าที่เลือกไม่มีสูตรส่วนประกอบ หรือประเภทไม่ตรงกับรายการสร้าง']);
                 }
+                $allowedComponentTypes = $type === RequisitionType::BUILD_WIP
+                    ? [ProductType::PART]
+                    : [ProductType::PART, ProductType::WIP];
                 foreach ($target->components as $component) {
+                    if (! in_array($component->product_type, $allowedComponentTypes, true)) {
+                        throw ValidationException::withMessages(['target_product_id' => 'สูตรการผลิตมี SUPPLY หรือประเภทที่ไม่ถูกต้อง กรุณาแก้สูตรให้ใช้เฉพาะ PART สำหรับ WIP และ PART/WIP สำหรับ FG']);
+                    }
                     $total = BigDecimal::of($component->pivot->quantity)
                         ->multipliedBy($data['target_quantity'])
                         ->toScale(4, RoundingMode::HALF_UP);
@@ -53,6 +59,8 @@ class RequisitionService
             } else {
                 $expectedTypes = match ($type) {
                     RequisitionType::GENERAL_ISSUE => [ProductType::PART, ProductType::SUPPLY],
+                    RequisitionType::ISSUE_PART => [ProductType::PART],
+                    RequisitionType::ISSUE_SUPPLY => [ProductType::SUPPLY],
                     RequisitionType::ISSUE_WIP => [ProductType::WIP],
                     RequisitionType::ISSUE_FG => [ProductType::FG],
                     default => throw new \LogicException('Unsupported requisition type'),

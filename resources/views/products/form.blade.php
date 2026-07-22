@@ -20,7 +20,7 @@
     ])->values()->all() : []);
 @endphp
 <div class="mb-7 flex items-start justify-between gap-4">
-    <div><h2 class="page-title">{{ $product->exists ? 'แก้ไขรายการ' : 'สร้างรายการใหม่' }}</h2><p class="page-subtitle">PART และ SUPPLY เพิ่มได้ทันที ส่วน WIP และ FG ให้กำหนดสูตรหรือตัวเลือกเพิ่มเติม</p></div>
+    <div><h2 class="page-title">{{ $product->exists ? 'แก้ไขรายการ' : 'สร้างรายการใหม่' }}</h2><p class="page-subtitle">PART คือชิ้นส่วนที่ระบุจำนวนใน BOM ได้ ส่วน SUPPLY คือวัสดุสิ้นเปลืองที่แยกเก็บและไม่ผูกจำนวนต่อชิ้นงาน</p></div>
     <a href="{{route('products.index')}}" class="btn-secondary">กลับ</a>
 </div>
 <form method="post" action="{{$product->exists ? route('products.update',$product) : route('products.store')}}" enctype="multipart/form-data" class="space-y-6" id="product-form">
@@ -50,13 +50,26 @@
         </div>
     </section>
 
+    <div id="fg-config-tabs" class="hidden rounded-2xl border border-violet-200 bg-violet-50 p-2">
+        <div class="grid gap-2 sm:grid-cols-2">
+            <button type="button" data-fg-tab="recipe" class="rounded-xl px-5 py-3 text-left font-bold transition">
+                สูตรผลิต FG (BOM)
+                <small class="mt-1 block font-normal">ส่วนประกอบหลัก WIP/PART ที่ใช้ทุกชิ้น</small>
+            </button>
+            <button type="button" data-fg-tab="options" class="rounded-xl px-5 py-3 text-left font-bold transition">
+                Option สำหรับหน้าขาย
+                <small class="mt-1 block font-normal">ตัวเลือก WIP/PART ที่ลูกค้าเลือกเพิ่ม</small>
+            </button>
+        </div>
+    </div>
+
     <section class="panel" id="recipe-panel">
         <div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">สูตรส่วนประกอบต่อ 1 ชิ้น (BOM)</h3><p class="mt-1 text-slate-500" id="recipe-help"></p></div><button type="button" id="add-component" class="btn-secondary">+ เพิ่มส่วนประกอบ</button></div>
         <div class="panel-body space-y-3" id="component-list"></div>
     </section>
 
     <section class="panel border-2 border-violet-200" id="options-panel">
-        <div class="panel-header bg-gradient-to-r from-violet-50 to-purple-50"><div><h3 class="text-xl font-bold text-violet-950">⚙️ ตัวเลือกเสริมสำหรับขาย (Option Groups)</h3><p class="mt-1 text-violet-700">กำหนดกลุ่มตัวเลือกเสริม (เช่น หูหิ้ว/สายสะพาย, คาราโอเกะ) โดยดึงสินค้า **WIP** หรือ **PART** มาเป็นตัวเลือก เพื่อให้ระบบตัดสต็อกอัตโนมัติเมื่อขายสินค้า FG นี้</p></div><button type="button" id="add-option-group" class="btn-primary">+ เพิ่มกลุ่ม Option</button></div>
+        <div class="panel-header bg-gradient-to-r from-violet-50 to-purple-50"><div><h3 class="text-xl font-bold text-violet-950">⚙️ ตัวเลือกเสริมสำหรับขาย (Option Groups)</h3><p class="mt-1 text-violet-700">สร้างกลุ่ม เช่น “รูปแบบการถือ” หรือ “ระบบคาราโอเกะ” แล้วดึง <strong>WIP</strong> หรือ <strong>PART</strong> มาเป็นตัวเลือก ระบบจะตัดสต็อกตามจำนวนที่กำหนดเมื่อขาย FG</p></div><button type="button" id="add-option-group" class="btn-primary">+ เพิ่มกลุ่ม Option</button></div>
         <div class="panel-body space-y-6" id="option-group-list"></div>
     </section>
 
@@ -71,9 +84,23 @@ imageInput?.addEventListener('change',()=>{const file=imageInput.files?.[0];if(!
 
 let rows = @json($oldComponents);
 const list=document.getElementById('component-list'), type=document.getElementById('product-type'), panel=document.getElementById('recipe-panel');
+const fgTabs=document.getElementById('fg-config-tabs');
+let activeFgTab='recipe';
+
+function updateConfigPanels(){
+    const isFg=type.value==='FG';
+    fgTabs.classList.toggle('hidden', !isFg);
+    panel.classList.toggle('hidden', ['PART','SUPPLY'].includes(type.value) || (isFg && activeFgTab!=='recipe'));
+    optPanel.classList.toggle('hidden', !isFg || activeFgTab!=='options');
+    document.querySelectorAll('[data-fg-tab]').forEach(button=>{
+        const active=button.dataset.fgTab===activeFgTab;
+        button.className=`rounded-xl px-5 py-3 text-left font-bold transition ${active?'bg-white text-violet-900 shadow-sm ring-1 ring-violet-200':'text-violet-700 hover:bg-white/60'}`;
+    });
+}
+
 function options(selected){const allowed=products.filter(p=>type.value==='WIP'?p.type==='PART':['PART','WIP'].includes(p.type));return '<option value="">เลือกส่วนประกอบ</option>'+allowed.map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${p.code} — ${p.name} (${p.type})</option>`).join('')}
-function render(){panel.classList.toggle('hidden',['PART', 'SUPPLY'].includes(type.value));document.getElementById('recipe-help').textContent=type.value=='WIP'?'WIP ใช้ PART เป็นส่วนประกอบ':'FG ใช้ได้ทั้ง PART และ WIP';list.innerHTML=rows.map((r,i)=>`<div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_220px_auto]"><select class="select" name="components[${i}][product_id]" required>${options(r.product_id)}</select><input class="input" type="number" min="0.0001" step="0.0001" name="components[${i}][quantity]" value="${r.quantity||1}" placeholder="จำนวนต่อ 1 ชิ้น" required><button type="button" class="btn-danger" onclick="rows.splice(${i},1);render()">ลบ</button></div>`).join('')||'<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีส่วนประกอบ กด “เพิ่มส่วนประกอบ”</div>'}
-type.addEventListener('change',()=>{rows=[];optionGroups=[];render();renderOptions()});document.getElementById('add-component').addEventListener('click',()=>{rows.push({product_id:'',quantity:1});render()});
+function render(){document.getElementById('recipe-help').textContent=type.value=='WIP'?'WIP ใช้ PART เป็นส่วนประกอบ':'FG ใช้ได้ทั้ง PART และ WIP';list.innerHTML=rows.map((r,i)=>`<div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_220px_auto]"><select class="select" name="components[${i}][product_id]" required>${options(r.product_id)}</select><input class="input" type="number" min="0.0001" step="0.0001" name="components[${i}][quantity]" value="${r.quantity||1}" placeholder="จำนวนต่อ 1 ชิ้น" required><button type="button" class="btn-danger" onclick="rows.splice(${i},1);render()">ลบ</button></div>`).join('')||'<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีส่วนประกอบ กด “เพิ่มส่วนประกอบ”</div>';updateConfigPanels()}
+type.addEventListener('change',()=>{rows=[];optionGroups=[];activeFgTab='recipe';render();renderOptions()});document.getElementById('add-component').addEventListener('click',()=>{rows.push({product_id:'',quantity:1});render()});
 
 let optionGroups = @json($oldOptionGroups);
 const optGroupList = document.getElementById('option-group-list'), optPanel = document.getElementById('options-panel');
@@ -85,9 +112,9 @@ function optionProductsOptions(selectedId) {
 }
 
 function renderOptions() {
-    optPanel.classList.toggle('hidden', type.value !== 'FG');
     if (type.value !== 'FG') {
         optGroupList.innerHTML = '';
+        updateConfigPanels();
         return;
     }
     
@@ -146,6 +173,7 @@ function renderOptions() {
             </div>
         `;
     }).join('') || '<div class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">ยังไม่มีกลุ่ม Option สำหรับสินค้าสำเร็จรูปนี้</div>';
+    updateConfigPanels();
 }
 
 function handleDefaultCheck(gIdx, iIdx, checkbox) {
@@ -206,6 +234,7 @@ function syncStateFromDOM() {
 }
 
 document.getElementById('add-option-group').addEventListener('click', addOptionGroup);
+document.querySelectorAll('[data-fg-tab]').forEach(button=>button.addEventListener('click',()=>{activeFgTab=button.dataset.fgTab;updateConfigPanels()}));
 
 // Initial run
 render();

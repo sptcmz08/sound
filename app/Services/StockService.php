@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\ProductType;
 use App\Enums\StockDocumentStatus;
 use App\Enums\StockDocumentType;
 use App\Enums\StockTransactionType;
 use App\Models\Product;
+use App\Models\ProductOptionItem;
 use App\Models\StockBalance;
 use App\Models\StockDocument;
 use App\Models\StockTransaction;
@@ -57,9 +59,29 @@ class StockService
                     ]);
                     $this->apply($doc, $item->id, $product, $type->isInbound(), (string) $line['quantity'], $user, $this->transactionType($type));
                     
-                    if (isset($line['options']) && is_array($line['options'])) {
+                    $optionCostPerUnit = BigDecimal::zero();
+                    if (! empty($line['options']) && $type !== StockDocumentType::SALE_OUT) {
+                        throw ValidationException::withMessages(['items' => 'Option ใช้ได้เฉพาะเอกสารขายเท่านั้น']);
+                    }
+                    if ($type === StockDocumentType::SALE_OUT && isset($line['options']) && is_array($line['options'])) {
+                        $seenOptionItems = [];
+                        $seenOptionGroups = [];
                         foreach ($line['options'] as $optLine) {
-                            $optionItem = \App\Models\ProductOptionItem::with('optionProduct')->findOrFail($optLine['product_option_item_id']);
+                            $optionItem = ProductOptionItem::with(['group', 'optionProduct'])->findOrFail($optLine['product_option_item_id']);
+                            if (isset($seenOptionItems[$optionItem->id])) {
+                                throw ValidationException::withMessages(['items' => 'ห้ามเลือก Option ซ้ำในรายการขายเดียวกัน']);
+                            }
+                            $seenOptionItems[$optionItem->id] = true;
+                            if ($product->product_type !== ProductType::FG || $optionItem->group->product_id !== $product->id) {
+                                throw ValidationException::withMessages(['items' => "Option ที่เลือกไม่ได้อยู่ในสินค้า FG {$product->name}"]);
+                            }
+                            if (isset($seenOptionGroups[$optionItem->product_option_group_id])) {
+                                throw ValidationException::withMessages(['items' => "เลือก Option ในกลุ่ม {$optionItem->group->name} ได้เพียง 1 รายการ"]);
+                            }
+                            $seenOptionGroups[$optionItem->product_option_group_id] = true;
+                            if (! $optionItem->optionProduct->is_active || ! in_array($optionItem->optionProduct->product_type, [ProductType::PART, ProductType::WIP], true)) {
+                                throw ValidationException::withMessages(['items' => 'Option ต้องเป็น PART หรือ WIP ที่เปิดใช้งานเท่านั้น']);
+                            }
                             
                             $optQtyPerUnit = BigDecimal::of($optionItem->quantity);
                             $mainQty = BigDecimal::of($line['quantity']);
@@ -69,6 +91,10 @@ class StockService
                                 'product_option_item_id' => $optionItem->id,
                                 'quantity' => (string) $totalOptQty,
                             ]);
+
+                            $optionCostPerUnit = $optionCostPerUnit->plus(
+                                BigDecimal::of($optionItem->optionProduct->standard_cost)->multipliedBy($optQtyPerUnit)
+                            );
                             
                             $this->apply(
                                 $doc,
@@ -80,6 +106,9 @@ class StockService
                                 StockTransactionType::OUT
                             );
                         }
+                        $item->update([
+                            'unit_cost' => (string) BigDecimal::of($item->unit_cost)->plus($optionCostPerUnit),
+                        ]);
                     }
 
                     if ($type === StockDocumentType::SUPPLIER_IN && array_key_exists('unit_cost', $line)) {

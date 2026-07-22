@@ -46,7 +46,7 @@
                 <div class="grid gap-3 md:grid-cols-3">
                     @foreach($types as $type)
                     <label class="cursor-pointer">
-                        <input class="peer sr-only" type="radio" name="request_type" value="{{ $type->value }}" @checked(old('request_type', $selectedType?->value ?? 'GENERAL_ISSUE') === $type->value)>
+                        <input class="peer sr-only" type="radio" name="request_type" value="{{ $type->value }}" @checked(old('request_type', $selectedType?->value ?? 'ISSUE_PART') === $type->value)>
                         <span class="block h-full rounded-xl border-2 border-slate-200 p-4 transition peer-checked:border-blue-600 peer-checked:bg-blue-50">
                             <strong class="block text-lg text-slate-950">{{ $type->label() }}</strong>
                             <small class="mt-1 block text-slate-500">{{ $type->description() }}</small>
@@ -117,7 +117,7 @@ function escapeHtml(value) {
 }
 
 function current() {
-    return radios.find(radio => radio.checked)?.value ?? 'GENERAL_ISSUE';
+    return radios.find(radio => radio.checked)?.value ?? 'ISSUE_PART';
 }
 
 function isBuild() {
@@ -126,15 +126,15 @@ function isBuild() {
 
 function wantedType() {
     return {
-        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
+        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_PART: ['PART'], ISSUE_SUPPLY: ['SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
         BUILD_WIP: ['WIP'], BUILD_FG: ['FG']
     }[current()];
 }
 
 function componentTypes() {
     return {
-        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
-        BUILD_WIP: ['PART', 'SUPPLY'], BUILD_FG: ['WIP', 'PART', 'SUPPLY']
+        GENERAL_ISSUE: ['PART', 'SUPPLY'], ISSUE_PART: ['PART'], ISSUE_SUPPLY: ['SUPPLY'], ISSUE_WIP: ['WIP'], ISSUE_FG: ['FG'],
+        BUILD_WIP: ['PART'], BUILD_FG: ['WIP', 'PART']
     }[current()];
 }
 

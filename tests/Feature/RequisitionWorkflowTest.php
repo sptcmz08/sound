@@ -28,6 +28,8 @@ class RequisitionWorkflowTest extends TestCase
 
     private Product $part;
 
+    private Product $supply;
+
     private Product $wip;
 
     private function signatureData(): string
@@ -44,6 +46,7 @@ class RequisitionWorkflowTest extends TestCase
         $this->warehouse = Warehouse::create(['code' => 'MAIN', 'name' => 'คลังหลัก', 'is_active' => true]);
         $base = ['unit_id' => $this->unit->id, 'minimum_stock' => 0, 'is_active' => true, 'created_by' => $this->admin->id, 'updated_by' => $this->admin->id];
         $this->part = Product::create($base + ['code' => 'NUT-14', 'name' => 'น็อต 1/4 นิ้ว', 'product_type' => ProductType::PART]);
+        $this->supply = Product::create($base + ['code' => 'GLUE-01', 'name' => 'กาวสิ้นเปลือง', 'product_type' => ProductType::SUPPLY]);
         $this->wip = Product::create($base + ['code' => 'WIP-01', 'name' => 'WIP ลำโพง A', 'product_type' => ProductType::WIP]);
         $this->wip->components()->attach($this->part->id, ['quantity' => 4]);
     }
@@ -71,6 +74,7 @@ class RequisitionWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('เบิกสินค้า')
             ->assertSee('PART')
+            ->assertSee('SUPPLY')
             ->assertSee('WIP')
             ->assertSee('FG พร้อมขาย');
 
@@ -79,6 +83,18 @@ class RequisitionWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('ผลิต WIP')
             ->assertSee('ผลิต FG');
+
+        $this->actingAs($this->staff)
+            ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_PART->value]))
+            ->assertOk()
+            ->assertSee($this->part->code)
+            ->assertDontSee($this->supply->code);
+
+        $this->actingAs($this->staff)
+            ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_SUPPLY->value]))
+            ->assertOk()
+            ->assertSee($this->supply->code)
+            ->assertDontSee($this->part->code);
 
         $this->actingAs($this->staff)
             ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_WIP->value]))
@@ -114,6 +130,7 @@ class RequisitionWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('ชื่อ WIP')
             ->assertSee($this->part->code)
+            ->assertDontSee($this->supply->code)
             ->assertDontSee('แผนก / หน่วยงาน')
             ->assertDontSee('วัตถุประสงค์');
 
@@ -129,6 +146,35 @@ class RequisitionWorkflowTest extends TestCase
         $this->assertStringStartsWith('WIP-', $newWip->code);
         $this->assertEquals(2, $newWip->components()->first()->pivot->quantity);
         $this->assertSame('6', Requisition::latest('id')->firstOrFail()->items()->first()->quantity);
+    }
+
+    public function test_supply_cannot_be_used_as_a_wip_component(): void
+    {
+        $this->actingAs($this->staff)->post(route('requisitions.wip.store'), [
+            'wip_name' => 'WIP สูตรผิด',
+            'output_quantity' => 1,
+            'warehouse_id' => $this->warehouse->id,
+            'components' => [['product_id' => $this->supply->id, 'quantity' => 1]],
+        ])->assertSessionHasErrors('components');
+
+        $this->assertDatabaseMissing('products', ['name' => 'WIP สูตรผิด']);
+    }
+
+    public function test_part_and_supply_requisitions_are_validated_separately(): void
+    {
+        $this->actingAs($this->staff)->post(route('requisitions.store'), [
+            'request_type' => RequisitionType::ISSUE_SUPPLY->value,
+            'warehouse_id' => $this->warehouse->id,
+            'items' => [['product_id' => $this->part->id, 'quantity' => 1]],
+        ])->assertSessionHasErrors('items');
+
+        $this->actingAs($this->staff)->post(route('requisitions.store'), [
+            'request_type' => RequisitionType::ISSUE_SUPPLY->value,
+            'warehouse_id' => $this->warehouse->id,
+            'items' => [['product_id' => $this->supply->id, 'quantity' => 1]],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('requisitions', ['request_type' => RequisitionType::ISSUE_SUPPLY->value]);
     }
 
     public function test_saved_wip_recipe_can_be_selected_and_reused_without_duplicate_product(): void

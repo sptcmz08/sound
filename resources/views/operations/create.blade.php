@@ -71,7 +71,7 @@
             <div class="panel-header flex items-center justify-between">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900">รายการสินค้า</h3>
-                    <p class="text-xs text-slate-500">เลือกสินค้าและ Option เสริม (ระบบจะตัดสต็อก WIP/PART ของ Option อัตโนมัติ)</p>
+                    <p class="text-xs text-slate-500">{{ $operation === 'sale' ? 'เลือก FG และ Option ที่ลูกค้าต้องการ ระบบจะตัดสต็อก FG/WIP/PART พร้อมกัน' : 'เลือกสินค้าและระบุจำนวนที่ต้องการทำรายการ' }}</p>
                 </div>
                 <button type="button" id="add-item" class="btn-primary shadow-lg shadow-blue-500/20">
                     + เพิ่มรายการสินค้า
@@ -82,7 +82,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th class="min-w-[340px]">สินค้า & ตัวเลือกเสริม (Option)</th>
+                                <th class="min-w-[340px]">{{ $operation === 'sale' ? 'สินค้า FG และ Option' : 'สินค้า' }}</th>
                                 <th>ประเภท</th>
                                 <th class="text-right">คงเหลือในคลัง</th>
                                 <th class="min-w-36">จำนวน</th>
@@ -100,17 +100,7 @@
             </div>
         </section>
 
-        {{-- Floating Sticky Footer --}}
-        <div class="sticky bottom-6 z-20 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200/90 bg-white/95 p-5 shadow-2xl backdrop-blur-md">
-            <div class="flex items-center gap-3">
-                <span class="inline-flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </span>
-                <div>
-                    <strong class="block text-xs uppercase tracking-wider text-slate-600">ระบบตรวจสอบอัตโนมัติ</strong>
-                    <span class="text-xs text-slate-500">ตรวจสอบคงเหลือและป้องกันสต็อกติดลบทันทีที่บันทึก</span>
-                </div>
-            </div>
+        <div class="flex justify-end">
             <button class="{{ $config['direction']==='in' ? 'btn-success shadow-lg shadow-emerald-500/25' : 'btn-primary shadow-lg shadow-blue-500/25' }}">
                 ✓ ยืนยัน{{ $config['title'] }}
             </button>
@@ -127,6 +117,7 @@ const operationEmpty = document.getElementById('empty-items');
 const operationWarehouse = document.getElementById('warehouse');
 const hasCost = @json($config['cost_input']);
 const hasPrice = @json($config['price_input']);
+const optionsEnabled = @json($operation === 'sale');
 let operationIndex = 0;
 
 function productOptions(selected='') {
@@ -145,7 +136,7 @@ function renderRowOptions(row, index) {
         selectedValues[gIdx] = sel.value;
     });
     
-    if (!product || !product.optionGroups || product.optionGroups.length === 0) {
+    if (!optionsEnabled || !product || !product.optionGroups || product.optionGroups.length === 0) {
         container.innerHTML = '';
         container.classList.add('hidden');
         return;

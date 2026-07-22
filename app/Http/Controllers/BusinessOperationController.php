@@ -111,7 +111,7 @@ class BusinessOperationController extends Controller
             'items.*.unit_cost' => [$config['cost_input'] ? 'required' : 'nullable', 'decimal:0,4', 'gte:0'],
             'items.*.unit_price' => [$config['price_input'] ? 'required' : 'nullable', 'decimal:0,4', 'gte:0'],
             'items.*.options' => ['nullable', 'array'],
-            'items.*.options.*.product_option_item_id' => ['required', 'integer', 'exists:product_option_items,id'],
+            'items.*.options.*.product_option_item_id' => ['required', 'integer', 'distinct', 'exists:product_option_items,id'],
         ];
         $data = $request->validate($rules);
         $products = Product::with(['optionGroups.items'])->whereIn('id', collect($data['items'])->pluck('product_id'))->get()->keyBy('id');
@@ -121,12 +121,22 @@ class BusinessOperationController extends Controller
                 throw ValidationException::withMessages(['items' => 'พบรายการที่ไม่ตรงกับประเภทของงานนี้']);
             }
 
-            if ($product->product_type === ProductType::FG && $product->optionGroups->where('is_required', true)->count() > 0) {
-                $selectedOptionItemIds = collect($line['options'] ?? [])->pluck('product_option_item_id')->map(fn ($id) => (int) $id)->all();
-                foreach ($product->optionGroups->where('is_required', true) as $reqGroup) {
-                    $groupItemIds = $reqGroup->items->pluck('id')->all();
-                    if (! array_intersect($groupItemIds, $selectedOptionItemIds)) {
-                        throw ValidationException::withMessages(['items' => "กรุณาเลือกตัวเลือกในกลุ่ม '{$reqGroup->name}' สำหรับสินค้า {$product->name}"]);
+            $selectedOptionItemIds = collect($line['options'] ?? [])->pluck('product_option_item_id')->map(fn ($id) => (int) $id);
+            if ($operation !== 'sale' && $selectedOptionItemIds->isNotEmpty()) {
+                throw ValidationException::withMessages(['items' => 'เลือก Option ได้เฉพาะหน้าขายสินค้า FG เท่านั้น']);
+            }
+            if ($operation === 'sale') {
+                $availableOptionItems = $product->optionGroups->flatMap(fn ($group) => $group->items)->keyBy('id');
+                if ($selectedOptionItemIds->contains(fn ($id) => ! $availableOptionItems->has($id))) {
+                    throw ValidationException::withMessages(['items' => "พบ Option ที่ไม่ได้อยู่ในสินค้า FG {$product->name}"]);
+                }
+                foreach ($product->optionGroups as $group) {
+                    $selectedInGroup = $selectedOptionItemIds->intersect($group->items->pluck('id'));
+                    if ($selectedInGroup->count() > 1) {
+                        throw ValidationException::withMessages(['items' => "เลือก Option ในกลุ่ม '{$group->name}' ได้เพียง 1 รายการ"]);
+                    }
+                    if ($group->is_required && $selectedInGroup->isEmpty()) {
+                        throw ValidationException::withMessages(['items' => "กรุณาเลือกตัวเลือกในกลุ่ม '{$group->name}' สำหรับสินค้า {$product->name}"]);
                     }
                 }
             }
@@ -149,7 +159,7 @@ class BusinessOperationController extends Controller
                 'party_label' => 'Supplier', 'party_required' => true, 'note_required' => false, 'cost_input' => true, 'price_input' => false, 'direction' => 'in',
             ],
             'sale' => [
-                'title' => 'ขาย', 'subtitle' => 'ตัด FG ออกจากสต็อกและบันทึกราคาขายสำหรับรายงานกำไร',
+                'title' => 'ขาย', 'subtitle' => 'ตัด FG พร้อม WIP/PART ของ Option ที่ลูกค้าเลือก และบันทึกต้นทุนจริงสำหรับรายงานกำไร',
                 'document_type' => StockDocumentType::SALE_OUT, 'product_types' => [ProductType::FG->value],
                 'party_label' => 'ลูกค้า', 'party_required' => true, 'note_required' => false, 'cost_input' => false, 'price_input' => true, 'direction' => 'out',
             ],
