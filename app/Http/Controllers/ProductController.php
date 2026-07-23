@@ -76,6 +76,11 @@ class ProductController extends Controller
             return $product;
         });
 
+        if ($request->input('modal') == '1' || $request->query('modal') == '1') {
+            $targetUrl = route('products.index', ['type' => $product->product_type->value]);
+            return response("<script>if(window.parent && window.parent !== window){ window.parent.location.href='{$targetUrl}'; } else { window.location.href='{$targetUrl}'; }</script>");
+        }
+
         return redirect()->route('products.index', ['type' => $product->product_type->value])->with('success', "เพิ่ม {$product->name} แล้ว");
     }
 
@@ -108,6 +113,11 @@ class ProductController extends Controller
             $this->syncOptionGroups($product, $request->input('option_groups', []));
             $audit->record($request->user(), 'UPDATE', 'product', $product->id, $old, $product->fresh()->load(['components', 'optionGroups.items.optionProduct'])->toArray());
         });
+
+        if ($request->input('modal') == '1' || $request->query('modal') == '1') {
+            $targetUrl = route('products.index', ['type' => $product->fresh()->product_type->value]);
+            return response("<script>if(window.parent && window.parent !== window){ window.parent.location.href='{$targetUrl}'; } else { window.location.href='{$targetUrl}'; }</script>");
+        }
 
         return redirect()->route('products.index', ['type' => $product->fresh()->product_type->value])->with('success', 'บันทึกสินค้าและสูตรแล้ว');
     }

@@ -19,12 +19,15 @@
         ])->values()->all()
     ])->values()->all() : []);
 @endphp
+@if(!request('modal'))
 <div class="mb-7 flex items-start justify-between gap-4">
     <div><span class="page-kicker">ข้อมูลหลัก {{ $currentType }}</span><h2 class="page-title">{{ $product->exists ? 'แก้ไข '.$currentType : 'เพิ่ม '.$currentType }}</h2><p class="page-subtitle">PART คือชิ้นส่วนที่ระบุจำนวนใน BOM ได้ ส่วน SUPPLY คือวัสดุสิ้นเปลืองที่ไม่ผูกจำนวนต่อชิ้นงาน</p></div>
     <a href="{{route('products.index')}}" class="btn-secondary">กลับ</a>
 </div>
+@endif
 <form method="post" action="{{$product->exists ? route('products.update',$product) : route('products.store')}}" enctype="multipart/form-data" class="space-y-6" id="product-form">
     @csrf @if($product->exists) @method('PUT') @endif
+    <input type="hidden" name="modal" value="{{ request('modal') }}">
     <section class="panel"><div class="panel-header"><div><h3 class="text-xl font-bold text-slate-950">ข้อมูลสินค้า</h3><p class="mt-1 text-slate-500">เลือกประเภทสินค้าที่ถูกต้องเพื่อเริ่มจัดการ</p></div></div>
         <div class="panel-body grid gap-5 md:grid-cols-2">
             <div class="md:col-span-2">
@@ -32,7 +35,7 @@
                 <div class="flex flex-wrap items-center gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div class="relative">
                         <x-product-image :product="$product" size="xl" id="current-product-image" />
-                        <img id="new-product-image" class="hidden size-24 rounded-xl border border-blue-300 bg-white object-cover shadow-sm" alt="ตัวอย่างรูปสินค้าใหม่">
+                        <img id="new-product-image" class="hidden size-36 rounded-2xl border-2 border-blue-400 bg-white object-cover shadow-md" alt="ตัวอย่างรูปสินค้าใหม่">
                     </div>
                     <label class="min-w-64 flex-1"><span class="font-bold text-slate-900">เลือกรูปจากเครื่อง</span><input id="product-image-input" class="mt-2 block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2.5 file:font-semibold file:text-white hover:file:bg-blue-700" type="file" name="image" accept="image/jpeg,image/png,image/webp"><span class="mt-2 block text-sm text-slate-500">รองรับ JPG, PNG และ WEBP ขนาดไม่เกิน 2 MB</span></label>
                 </div>
