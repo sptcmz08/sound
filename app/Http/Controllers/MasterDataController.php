@@ -13,7 +13,11 @@ class MasterDataController extends Controller
 {
     public function index()
     {
-        return view('settings.index', ['units' => Unit::orderBy('code')->get(), 'warehouses' => Warehouse::orderBy('code')->get()]);
+        return view('settings.index', [
+            'units' => Unit::orderBy('code')->get(),
+            'warehouses' => Warehouse::orderBy('code')->get(),
+            'locations' => \App\Models\WarehouseLocation::with('warehouse')->orderBy('code')->get(),
+        ]);
     }
 
     public function unit(Request $r, AuditLogService $audit)
@@ -101,6 +105,36 @@ class MasterDataController extends Controller
             $message = 'ลบคลังสินค้าแล้ว';
         }
         $audit->record($request->user(), $action, 'warehouse', $warehouse->id, $old);
+
+        return back()->with('success', $message);
+    }
+
+    public function location(Request $r, AuditLogService $audit)
+    {
+        $data = $r->validate([
+            'warehouse_id' => ['required', 'exists:warehouses,id'],
+            'code' => ['required', 'max:50', Rule::unique('warehouse_locations')->where('warehouse_id', $r->input('warehouse_id'))],
+            'name' => ['required', 'max:255'],
+        ]);
+        $m = \App\Models\WarehouseLocation::create($data + ['is_active' => true]);
+        $audit->record($r->user(), 'CREATE', 'warehouse_location', $m->id, null, $m->toArray());
+
+        return back()->with('success', 'เพิ่มตำแหน่งจัดเก็บ (Location) แล้ว');
+    }
+
+    public function destroyLocation(Request $request, \App\Models\WarehouseLocation $location, AuditLogService $audit)
+    {
+        $old = $location->toArray();
+        if ($location->products()->exists()) {
+            $location->update(['is_active' => false]);
+            $action = 'DEACTIVATE';
+            $message = 'ตำแหน่งจัดเก็บมีสินค้าใช้งานอยู่ จึงเปลี่ยนเป็นปิดใช้งานแทนการลบ';
+        } else {
+            $location->delete();
+            $action = 'DELETE';
+            $message = 'ลบตำแหน่งจัดเก็บแล้ว';
+        }
+        $audit->record($request->user(), $action, 'warehouse_location', $location->id, $old);
 
         return back()->with('success', $message);
     }

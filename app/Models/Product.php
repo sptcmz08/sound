@@ -47,4 +47,14 @@ class Product extends Model
     {
         return $this->hasMany(ProductOptionGroup::class)->orderBy('sort_order')->orderBy('id');
     }
+
+    public function location()
+    {
+        return $this->belongsTo(WarehouseLocation::class, 'warehouse_location_id');
+    }
+
+    public function alternativeMaterials()
+    {
+        return $this->hasMany(AlternativeMaterial::class, 'product_id');
+    }
 }

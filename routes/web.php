@@ -129,6 +129,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/warehouses', [MasterDataController::class, 'warehouse'])->name('settings.warehouses');
         Route::put('/settings/warehouses/{warehouse}', [MasterDataController::class, 'updateWarehouse'])->name('settings.warehouses.update');
         Route::delete('/settings/warehouses/{warehouse}', [MasterDataController::class, 'destroyWarehouse'])->name('settings.warehouses.destroy');
+        Route::post('/settings/locations', [MasterDataController::class, 'location'])->name('settings.locations');
+        Route::delete('/settings/locations/{location}', [MasterDataController::class, 'destroyLocation'])->name('settings.locations.destroy');
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');

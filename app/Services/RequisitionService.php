@@ -8,6 +8,7 @@ use App\Enums\RequisitionType;
 use App\Enums\StockDocumentType;
 use App\Models\Product;
 use App\Models\Requisition;
+use App\Models\StockBalance;
 use App\Models\User;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -54,7 +55,30 @@ class RequisitionService
                     $total = BigDecimal::of($component->pivot->quantity)
                         ->multipliedBy($data['target_quantity'])
                         ->toScale(4, RoundingMode::HALF_UP);
-                    $request->items()->create(['product_id' => $component->id, 'quantity' => (string) $total, 'note' => 'ส่วนประกอบตามสูตร']);
+
+                    $usedProduct = $component;
+                    $note = 'ส่วนประกอบตามสูตร';
+
+                    $currentBalance = StockBalance::where('warehouse_id', $data['warehouse_id'])
+                        ->where('product_id', $component->id)
+                        ->value('quantity') ?? 0;
+
+                    if ((float) $currentBalance < (float) (string) $total) {
+                        $alt = \App\Models\AlternativeMaterial::where('product_id', $target->id)
+                            ->where('primary_product_id', $component->id)
+                            ->first();
+                        if ($alt && $alt->alternativeProduct && $alt->alternativeProduct->is_active) {
+                            $altFactor = $alt->conversion_factor ?? 1;
+                            $altTotal = BigDecimal::of($total)
+                                ->multipliedBy($altFactor)
+                                ->toScale(4, RoundingMode::HALF_UP);
+                            $usedProduct = $alt->alternativeProduct;
+                            $total = $altTotal;
+                            $note = "ส่วนประกอบทดแทนตามสูตร (แทน {$component->code})";
+                        }
+                    }
+
+                    $request->items()->create(['product_id' => $usedProduct->id, 'quantity' => (string) $total, 'note' => $note]);
                 }
             } else {
                 $expectedTypes = match ($type) {

@@ -17,4 +17,9 @@ class Warehouse extends Model
     {
         return $this->hasMany(StockDocument::class);
     }
+
+    public function locations()
+    {
+        return $this->hasMany(WarehouseLocation::class);
+    }
 }
