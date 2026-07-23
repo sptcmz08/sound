@@ -24,7 +24,11 @@
 <div class="space-y-5">
     <div class="page-head">
         <div>
-            <div class="flex flex-wrap items-center gap-2"><span class="page-kicker">{{ $document->document_type->label() }}</span><span class="{{ $document->status->value === 'POSTED' ? 'badge-green' : ($document->status->value === 'CANCELLED' ? 'badge-slate' : 'badge-amber') }}">{{ $document->status->value }}</span></div>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="page-kicker">{{ $document->document_type->label() }}</span>
+                <span class="{{ $document->status->value === 'POSTED' ? 'badge-green' : ($document->status->value === 'CANCELLED' ? 'badge-slate' : 'badge-amber') }}">{{ $document->status->value }}</span>
+                <span class="badge-green font-bold text-xs">QC: {{ $document->qc_status ?? 'PASSED' }}</span>
+            </div>
             <h2 class="page-title mt-2 font-mono">{{ $document->document_no }}</h2>
             <p class="page-subtitle">บันทึกวันที่ {{ $document->document_date->format('d/m/Y') }} · {{ $document->warehouse->name }}</p>
         </div>

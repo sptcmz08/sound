@@ -44,4 +44,9 @@ class StockDocument extends Model
     {
         return $this->hasOne(self::class, 'reversal_of_id');
     }
+
+    public function inspector()
+    {
+        return $this->belongsTo(User::class, 'inspected_by');
+    }
 }
