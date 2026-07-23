@@ -206,11 +206,8 @@ class RequisitionController extends Controller
 
     public function store(Request $request, RequisitionService $service)
     {
-        $data = $request->validate(['request_type' => ['required', Rule::enum(RequisitionType::class)], 'warehouse_id' => ['required', 'exists:warehouses,id'], 'target_product_id' => ['nullable', 'exists:products,id'], 'target_quantity' => ['nullable', 'decimal:0,4', 'gt:0'], 'department_name' => ['nullable', 'string', 'max:255'], 'purpose' => ['nullable', 'string', 'max:255'], 'note' => ['nullable', 'string', 'max:2000'], 'items' => ['nullable', 'array'], 'items.*.product_id' => ['required_with:items', 'exists:products,id', 'distinct'], 'items.*.quantity' => ['required_with:items', 'decimal:0,4', 'gt:0']]);
+        $data = $request->validate(['request_type' => ['required', Rule::enum(RequisitionType::class)], 'warehouse_id' => ['required', 'exists:warehouses,id'], 'target_product_id' => ['nullable', 'exists:products,id'], 'target_quantity' => ['nullable', 'decimal:0,4', 'gt:0'], 'department_name' => ['nullable', 'string', 'max:255'], 'purpose' => ['nullable', 'string', 'max:255'], 'note' => ['nullable', 'string', 'max:2000'], 'items' => ['nullable', 'array'], 'items.*.product_id' => ['required_with:items', 'exists:products,id', 'distinct'], 'items.*.quantity' => ['required_with:items', 'decimal:0,4', 'gt:0'], 'items.*.note' => ['nullable', 'string', 'max:255']]);
         $type = RequisitionType::from($data['request_type']);
-        if ($type === RequisitionType::GENERAL_ISSUE) {
-            return back()->withInput()->withErrors(['request_type' => 'กรุณาเลือกเบิก PART หรือ SUPPLY แยกประเภท']);
-        }
         if ($type->isBuild() && (blank($data['target_product_id'] ?? null) || blank($data['target_quantity'] ?? null))) {
             return back()->withInput()->withErrors(['target_product_id' => 'กรุณาเลือกสิ่งที่ต้องการสร้างและระบุจำนวน']);
         }

@@ -76,22 +76,17 @@ class RequisitionWorkflowTest extends TestCase
         $this->actingAs($this->staff)
             ->get(route('requisitions.withdraw'))
             ->assertOk()
-            ->assertSee('เบิก-จ่ายสินค้า')
-            ->assertSee('รายการสินค้าทั้งหมด')
-            ->assertSee('จัดการ')
+            ->assertSee('เบิกออกจากสต็อก')
+            ->assertSee('รายการเบิก')
+            ->assertSee('+ เพิ่มแถว')
             ->assertSee($this->part->code)
             ->assertSee($this->supply->code)
             ->assertSee($this->wip->code)
             ->assertSee($this->fg->code)
-            ->assertSee('id="open-requisition-cart"', false)
-            ->assertSee('id="requisition-cart"', false)
-            ->assertSee('left-1/2 top-1/2', false)
-            ->assertSee('max-w-6xl', false)
-            ->assertSee("imageFor(product, 'large')", false)
-            ->assertDontSee("renderCatalog();\n    openCart();", false)
+            ->assertSee('สต็อกคงเหลือ')
+            ->assertSee('ยืนยันเบิกออก')
             ->assertDontSee('ข้อมูลรายการ')
-            ->assertDontSee('Admin ทำรายการ')
-            ->assertSee('const isAdmin = false', false);
+            ->assertDontSee('Admin ทำรายการ');
 
         $this->actingAs($this->staff)
             ->get(route('requisitions.production'))
@@ -117,16 +112,12 @@ class RequisitionWorkflowTest extends TestCase
             ->get(route('requisitions.create', ['type' => RequisitionType::ISSUE_WIP->value]))
             ->assertOk()
             ->assertSee('id="request-type" value="ISSUE_WIP"', false)
-            ->assertDontSee('value="GENERAL_ISSUE"', false)
             ->assertSee('+ เพิ่มแถว')
-            ->assertSee('cart-product-select', false)
+            ->assertSee('item-product-select', false)
             ->assertSee('สต็อกคงเหลือ')
-            ->assertSee('จำนวนเบิก *')
+            ->assertSee('จำนวนเบิก / หน่วย *')
             ->assertSee('ยกเลิก')
-            ->assertSee('ยืนยันการเบิก')
-            ->assertDontSee('แผนก / หน่วยงาน')
-            ->assertDontSee('วัตถุประสงค์')
-            ->assertDontSee('หมายเหตุ');
+            ->assertSee('ยืนยันเบิกออก');
 
         $this->actingAs($this->staff)->post(route('requisitions.store'), [
             'request_type' => RequisitionType::ISSUE_WIP->value,

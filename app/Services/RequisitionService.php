@@ -58,7 +58,7 @@ class RequisitionService
                 }
             } else {
                 $expectedTypes = match ($type) {
-                    RequisitionType::GENERAL_ISSUE => [ProductType::PART, ProductType::SUPPLY],
+                    RequisitionType::GENERAL_ISSUE => [ProductType::PART, ProductType::SUPPLY, ProductType::WIP, ProductType::FG],
                     RequisitionType::ISSUE_PART => [ProductType::PART],
                     RequisitionType::ISSUE_SUPPLY => [ProductType::SUPPLY],
                     RequisitionType::ISSUE_WIP => [ProductType::WIP],
