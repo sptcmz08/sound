@@ -33,33 +33,57 @@ if (app()->environment('local') || request()->query('key') === 'sound2026!' || r
             return view('dev-tools', ['key' => $request->query('key')]);
         });
 
-        Route::post('/migrate', function (Request $request) use ($guard) {
+        Route::match(['get', 'post'], '/migrate', function (Request $request) use ($guard) {
             $guard($request);
             Artisan::call('migrate', ['--force' => true]);
+
+            if ($request->isMethod('get')) {
+                header('Content-Type: text/plain; charset=UTF-8');
+                echo "✅ migrate --force executed successfully!\n\n".Artisan::output();
+                exit;
+            }
 
             return back()->with('result', '✅ migrate --force'."\n".Artisan::output());
         });
 
-        Route::post('/optimize', function (Request $request) use ($guard) {
+        Route::match(['get', 'post'], '/optimize', function (Request $request) use ($guard) {
             $guard($request);
             Artisan::call('optimize:clear');
             $out1 = Artisan::output();
             Artisan::call('optimize');
             $out2 = Artisan::output();
 
+            if ($request->isMethod('get')) {
+                header('Content-Type: text/plain; charset=UTF-8');
+                echo "✅ optimize:clear + optimize executed successfully!\n\n".$out1.$out2;
+                exit;
+            }
+
             return back()->with('result', '✅ optimize:clear + optimize'."\n".$out1.$out2);
         });
 
-        Route::post('/seed', function (Request $request) use ($guard) {
+        Route::match(['get', 'post'], '/seed', function (Request $request) use ($guard) {
             $guard($request);
             Artisan::call('db:seed', ['--force' => true]);
+
+            if ($request->isMethod('get')) {
+                header('Content-Type: text/plain; charset=UTF-8');
+                echo "✅ db:seed --force executed successfully!\n\n".Artisan::output();
+                exit;
+            }
 
             return back()->with('result', '✅ db:seed --force'."\n".Artisan::output());
         });
 
-        Route::post('/migrate-fresh', function (Request $request) use ($guard) {
+        Route::match(['get', 'post'], '/migrate-fresh', function (Request $request) use ($guard) {
             $guard($request);
             Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
+
+            if ($request->isMethod('get')) {
+                header('Content-Type: text/plain; charset=UTF-8');
+                echo "⚠️ migrate:fresh --seed executed successfully!\n\n".Artisan::output();
+                exit;
+            }
 
             return back()->with('result', '⚠️ migrate:fresh --seed'."\n".Artisan::output());
         });
