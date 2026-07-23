@@ -25,24 +25,26 @@ class RequisitionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Requisition::with(['requester', 'targetProduct.unit', 'warehouse', 'items.product.unit', 'approver', 'rejecter'])
-            ->withCount('items')->latest();
+        $baseQuery = Requisition::query();
         if (! $request->user()->isAdmin()) {
-            $query->where('requested_by', $request->user()->id);
+            $baseQuery->where('requested_by', $request->user()->id);
         }
 
         $statusCounts = [
-            'pending' => (clone $query)->where('status', RequisitionStatus::PENDING)->count(),
-            'approved' => (clone $query)->where('status', RequisitionStatus::APPROVED)->count(),
-            'rejected' => (clone $query)->where('status', RequisitionStatus::REJECTED)->count(),
+            'pending' => (clone $baseQuery)->where('status', RequisitionStatus::PENDING)->count(),
+            'approved' => (clone $baseQuery)->where('status', RequisitionStatus::APPROVED)->count(),
+            'rejected' => (clone $baseQuery)->where('status', RequisitionStatus::REJECTED)->count(),
         ];
 
-        $status = strtoupper((string) $request->query('status'));
-        if (in_array($status, array_column(RequisitionStatus::cases(), 'value'), true)) {
-            $query->where('status', $status);
+        $query = (clone $baseQuery)->with(['requester', 'targetProduct.unit', 'warehouse', 'items.product.unit', 'approver', 'rejecter'])
+            ->withCount('items')->latest();
+
+        $statusEnum = RequisitionStatus::tryFrom(strtoupper((string) $request->query('status')));
+        if ($statusEnum) {
+            $query->where('status', $statusEnum);
         }
 
-        return view('requisitions.index', ['rows' => $query->paginate(30), 'statusCounts' => $statusCounts]);
+        return view('requisitions.index', ['rows' => $query->paginate(30)->withQueryString(), 'statusCounts' => $statusCounts]);
     }
 
     public function approvals()
