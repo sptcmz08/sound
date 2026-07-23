@@ -20,7 +20,7 @@
         <div>
             <span class="page-kicker">ข้อมูลหลัก</span>
             <h2 class="page-title">รายการสินค้า</h2>
-            <p class="page-subtitle">จัดการ PART, SUPPLY, WIP และ FG เพิ่ม/แก้ไขแบบ Popup Modal</p>
+            <p class="page-subtitle">จัดการข้อมูลสินค้า สูตรการผลิต BOM และ Option เพิ่มและแก้ไขสะดวกในหน้าเดียว</p>
         </div>
         <div class="flex flex-wrap gap-2.5">
             @if(auth()->user()?->canOperateStock())
@@ -122,7 +122,7 @@
                             @if(auth()->user()?->isAdmin())
                             <div class="flex justify-end gap-1.5">
                                 <button type="button" onclick="openProductModal('{{ route('products.edit', $product) }}', 'แก้ไข {{ $product->code }} — {{ $product->name }}')" class="btn-ghost font-bold text-blue-600 hover:bg-blue-50">
-                                    ✏️ แก้ไข (Popup)
+                                    แก้ไข
                                 </button>
                                 <form method="post" action="{{ route('products.destroy', $product) }}" onsubmit="return confirm('ยืนยันปิดใช้งานหรือลบสินค้านี้?')">
                                     @csrf @method('DELETE')
