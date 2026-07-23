@@ -2,25 +2,29 @@
 @section('title', $config['title'])
 @section('header', $config['title'])
 @section('content')
-<div class="space-y-5">
-    <div class="page-head">
+<div class="space-y-6">
+    {{-- Page Header --}}
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-            <span class="page-kicker">{{ $config['direction']==='in' ? 'รับเข้าสต็อก' : 'จ่ายออกจากสต็อก' }}</span>
+            <span class="page-kicker">{{ $config['direction']==='in' ? 'รับสินค้าเข้าสต็อก (Stock In)' : 'จ่ายสินค้าออกจากสต็อก (Stock Out)' }}</span>
             <h2 class="page-title">{{ $config['title'] }}</h2>
-            <p class="page-subtitle">{{ $config['subtitle'] }}</p>
+            <p class="page-subtitle">{{ $config['subtitle'] }} — บันทึกพัสดุเข้าสต็อกและอัปเดตยอดคงเหลือทันที</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2.5">
             @if($operation === 'claim')
-                <a href="{{ route('operations.create', 'waste') }}" class="btn-danger shadow-md shadow-rose-500/20">บันทึกของเสีย</a>
+                <a href="{{ route('operations.create', 'waste') }}" class="btn-danger">บันทึกของเสีย</a>
             @endif
             <a href="{{ route('dashboard') }}" class="btn-secondary">กลับหน้าหลัก</a>
         </div>
     </div>
 
+    {{-- Type Tabs Filter (for supplier receive) --}}
     @if($operation === 'supplier-receive')
-    <div class="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
-        @foreach(['' => 'ทั้งหมด', 'PART' => 'PART อะไหล่', 'SUPPLY' => 'SUPPLY สิ้นเปลือง', 'WIP' => 'WIP', 'FG' => 'FG'] as $typeValue => $typeLabel)
-        <a href="{{ route('operations.create', ['operation' => 'supplier-receive', 'type' => $typeValue ?: null]) }}" class="min-w-max flex-1 rounded-lg px-4 py-2 text-center text-xs font-semibold no-underline transition {{ request('type', '') === $typeValue ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">{{ $typeLabel }}</a>
+    <div class="flex overflow-x-auto rounded-2xl border border-slate-200/90 bg-white p-1.5 shadow-sm gap-1">
+        @foreach(['' => '📦 สินค้าทุกประเภท', 'PART' => '🔩 PART อะไหล่ผลิต', 'SUPPLY' => '🧪 SUPPLY วัสดุสิ้นเปลือง', 'WIP' => '⚙️ WIP งานประกอบ', 'FG' => '🔊 FG สินค้าสำเร็จรูป'] as $typeValue => $typeLabel)
+        <a href="{{ route('operations.create', ['operation' => 'supplier-receive', 'type' => $typeValue ?: null]) }}" class="min-w-max flex-1 rounded-xl px-4 py-2.5 text-center text-xs font-bold transition-all duration-200 {{ request('type', '') === $typeValue ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium' }}">
+            {{ $typeLabel }}
+        </a>
         @endforeach
     </div>
     @endif
@@ -28,85 +32,101 @@
     <form id="operation-form" method="post" action="{{ route('operations.store', $operation) }}" class="space-y-6">
         @csrf
         <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">
-        <div class="grid items-start gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <section class="panel">
-            <div class="panel-header">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-900">ข้อมูลเอกสารการ{{ $config['title'] }}</h3>
-                    <p class="text-xs text-slate-500">ระบุวันที่ คลังสินค้า และผู้ติดต่ออ้างอิง</p>
+
+        {{-- Document Header Info Card --}}
+        <div class="panel">
+            <div class="panel-header border-b border-slate-100 px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <div class="size-9 rounded-xl flex items-center justify-center font-bold text-white shadow-md {{ $config['direction']==='in' ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-blue-500 to-indigo-600' }}">
+                        {{ $config['direction']==='in' ? '📥' : '📤' }}
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">หัวข้อเอกสารและคลังสินค้า</h3>
+                        <p class="text-xs text-slate-400">เลือกคลังและวันที่ทำรายการ (คลังหลักเลือกให้อัตโนมัติ)</p>
+                    </div>
                 </div>
-                <span class="{{ $config['direction']==='in' ? 'badge-green' : 'badge-amber' }}">
-                    {{ $config['direction']==='in' ? 'STOCK IN' : 'STOCK OUT' }}
+                <span class="{{ $config['direction']==='in' ? 'badge-green' : 'badge-amber' }} text-xs px-3 py-1">
+                    {{ $config['direction']==='in' ? 'STOCK IN · รับเข้า' : 'STOCK OUT · จ่ายออก' }}
                 </span>
             </div>
-            <div class="panel-body space-y-4">
-                <label>
-                    <span class="label">วันที่ทำรายการ *</span>
-                    <input class="input" type="date" name="document_date" value="{{ old('document_date', today()->format('Y-m-d')) }}" required>
-                </label>
-                <label>
-                    <span class="label">คลังสินค้าทำรายการ *</span>
-                    <select class="select" name="warehouse_id" id="warehouse" required>
-                        <option value="">— เลือกคลัง —</option>
-                        @foreach($warehouses as $warehouse)
-                        <option value="{{ $warehouse->id }}" @selected(old('warehouse_id')==$warehouse->id)>
-                            {{ $warehouse->code }} — {{ $warehouse->name }}
-                        </option>
-                        @endforeach
-                    </select>
-                </label>
-                <label>
-                    <span class="label">{{ $config['party_label'] }} {{ $config['party_required'] ? '*' : '' }}</span>
-                    <input class="input" name="contact_name" value="{{ old('contact_name') }}" {{ $config['party_required'] ? 'required' : '' }} placeholder="ระบุชื่อ{{ $config['party_label'] }}">
-                </label>
-                <label>
-                    <span class="label">เลขที่เอกสารอ้างอิง</span>
-                    <input class="input" name="reference_no" value="{{ old('reference_no') }}" placeholder="เช่น PO-001 / INV-1234">
-                </label>
-                <label>
-                    <span class="label">หมายเหตุ {{ $config['note_required'] ? '*' : '' }}</span>
-                    <textarea class="input" name="note" rows="2" {{ $config['note_required'] ? 'required' : '' }} placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับการตรวจสอบย้อนหลัง...">{{ old('note') }}</textarea>
-                </label>
+            <div class="panel-body p-6">
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                        <label class="label">วันที่ทำรายการ *</label>
+                        <input class="input" type="date" name="document_date" value="{{ old('document_date', today()->format('Y-m-d')) }}" required>
+                    </div>
+                    <div>
+                        <label class="label">คลังสินค้า *</label>
+                        <select class="select" name="warehouse_id" id="warehouse" required>
+                            @foreach($warehouses as $warehouse)
+                            <option value="{{ $warehouse->id }}" @selected(old('warehouse_id', $warehouses->first()?->id) == $warehouse->id)>
+                                🏬 {{ $warehouse->code }} — {{ $warehouse->name }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">{{ $config['party_label'] }} {{ $config['party_required'] ? '*' : '' }}</label>
+                        <input class="input" name="contact_name" value="{{ old('contact_name') }}" {{ $config['party_required'] ? 'required' : '' }} placeholder="เช่น บริษัท ซัพพลายเออร์ จำกัด">
+                    </div>
+                    <div>
+                        <label class="label">เลขที่ PO / เอกสารอ้างอิง</label>
+                        <input class="input" name="reference_no" value="{{ old('reference_no') }}" placeholder="เช่น PO-2026-001">
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-4">
+                        <label class="label">หมายเหตุ {{ $config['note_required'] ? '*' : '' }}</label>
+                        <input class="input" name="note" value="{{ old('note') }}" {{ $config['note_required'] ? 'required' : '' }} placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับการตรวจสอบย้อนหลัง (ถ้ามี)">
+                    </div>
+                </div>
             </div>
-        </section>
+        </div>
 
-        <section class="panel">
-            <div class="panel-header flex items-center justify-between">
+        {{-- Products Table Card --}}
+        <div class="panel">
+            <div class="panel-header border-b border-slate-100 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900">รายการสินค้า</h3>
-                    <p class="text-xs text-slate-500">{{ $operation === 'sale' ? 'เลือก FG และ Option ที่ลูกค้าต้องการ ระบบจะตัดสต็อก FG/WIP/PART พร้อมกัน' : 'เลือกสินค้าและระบุจำนวนที่ต้องการทำรายการ' }}</p>
+                    <h3 class="text-sm font-bold text-slate-900">รายการพัสดุ/สินค้าที่จะรับเข้า</h3>
+                    <p class="text-xs text-slate-400">{{ $operation === 'sale' ? 'เลือก FG และ Option ที่ต้องการบันทึกขาย' : 'กดปุ่มเพิ่มรายการแล้วเลือกสินค้าจากรายชื่อ' }}</p>
                 </div>
                 <button type="button" id="add-item" class="btn-primary">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                     + เพิ่มรายการสินค้า
                 </button>
             </div>
-            <div class="panel-body">
-                <div class="table-wrap rounded-lg border border-slate-200 bg-white">
+            <div class="panel-body p-6">
+                <div class="table-wrap rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-sm">
                     <table class="data-table">
                         <thead>
-                            <tr>
-                                <th class="min-w-[340px]">{{ $operation === 'sale' ? 'สินค้า FG และ Option' : 'สินค้า' }}</th>
-                                <th>ประเภท</th>
-                                <th class="text-right">คงเหลือในคลัง</th>
-                                <th class="min-w-36">จำนวน</th>
-                                @if($config['cost_input'])<th class="min-w-40">ต้นทุน/หน่วย (฿)</th>@endif
-                                @if($config['price_input'])<th class="min-w-40">ราคาขาย/หน่วย (฿)</th><th class="text-right">รวมเป็นเงิน (฿)</th>@endif
-                                <th></th>
+                            <tr class="bg-slate-50/80">
+                                <th class="min-w-[340px] py-3.5">{{ $operation === 'sale' ? 'สินค้า FG และ Option' : 'ค้นหา/เลือกสินค้า' }}</th>
+                                <th class="py-3.5">ประเภท</th>
+                                <th class="py-3.5 text-right">คงเหลือปัจจุบัน</th>
+                                <th class="min-w-36 py-3.5">จำนวนที่รับเข้า *</th>
+                                @if($config['cost_input'])<th class="min-w-40 py-3.5">ต้นทุนต่อหน่วย (฿) *</th>@endif
+                                @if($config['price_input'])<th class="min-w-40 py-3.5">ราคาขายต่อหน่วย (฿) *</th><th class="text-right py-3.5">รวมเป็นเงิน (฿)</th>@endif
+                                <th class="py-3.5 text-center">ลบ</th>
                             </tr>
                         </thead>
-                        <tbody id="item-rows"></tbody>
+                        <tbody id="item-rows" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
-                <div id="empty-items" class="rounded-lg border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
-                    ยังไม่มีรายการสินค้า กดปุ่ม “+ เพิ่มรายการสินค้า” เพื่อเริ่มต้นบันทึก
+                <div id="empty-items" class="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-xs font-semibold text-slate-400 mt-4 bg-slate-50/50">
+                    ยังไม่มีรายการสินค้า — กดปุ่ม <span class="text-blue-600 font-bold">“+ เพิ่มรายการสินค้า”</span> เพื่อเริ่มต้นเพิ่มสินค้าที่จะรับเข้า
                 </div>
             </div>
-        </section>
         </div>
 
-        <div class="panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-            <div class="flex items-center gap-6 text-xs text-slate-500"><span>จำนวนรายการ <strong id="summary-lines" class="ml-1 text-base text-slate-900">0</strong></span>@if($config['price_input'])<span>ยอดรวม <strong id="summary-total" class="ml-1 text-lg text-blue-700">฿0.00</strong></span>@endif</div>
-            <button class="{{ $config['direction']==='in' ? 'btn-success' : 'btn-primary' }} px-6">ยืนยัน{{ $config['title'] }}</button>
+        {{-- Summary Action Footer --}}
+        <div class="panel flex flex-wrap items-center justify-between gap-4 p-5">
+            <div class="flex items-center gap-6 text-xs text-slate-600 font-medium">
+                <span>จำนวนรายการ: <strong id="summary-lines" class="ml-1 text-base font-bold text-slate-900">0</strong> รายการ</span>
+                @if($config['price_input'])
+                    <span>ยอดรวมทั้งสิ้น: <strong id="summary-total" class="ml-1.5 text-xl font-bold text-blue-700">฿0.00</strong></span>
+                @endif
+            </div>
+            <button class="{{ $config['direction']==='in' ? 'btn-success' : 'btn-primary' }} px-8 py-3 text-sm font-bold shadow-lg shadow-emerald-500/20">
+                {{ $config['direction']==='in' ? '✔ บันทึกรับสินค้าเข้าสต็อก' : '✔ บันทึกจ่ายสินค้าออก' }}
+            </button>
         </div>
     </form>
 </div>
@@ -134,7 +154,6 @@ function renderRowOptions(row, index) {
     const container = row.querySelector('.options-container');
     if (!container) return;
     
-    // Capture current selected values to preserve them
     const selectedValues = {};
     container.querySelectorAll('.option-select').forEach((sel, gIdx) => {
         selectedValues[gIdx] = sel.value;
@@ -203,8 +222,9 @@ function renderRowOptions(row, index) {
 
 function refreshRow(row) {
     const product=currentProduct(row), balance=product?.balances?.[operationWarehouse.value] ?? '0';
-    row.querySelector('.product-type').textContent=product?.type ?? '—';
-    row.querySelector('.product-balance').textContent=product ? `${balance} ${product.unit}` : '—';
+    const typeBadge = product ? `<span class="badge-${product.type.toLowerCase()}">${product.type}</span>` : '—';
+    row.querySelector('.product-type').innerHTML = typeBadge;
+    row.querySelector('.product-balance').textContent = product ? `${balance} ${product.unit}` : '—';
     const cost=row.querySelector('.unit-cost'); if(cost && !cost.dataset.edited) cost.value=product?.cost ?? '0';
     const price=row.querySelector('.unit-price'); if(price && !price.dataset.edited) price.value=product?.price ?? '0';
     
@@ -230,10 +250,16 @@ function refreshSummary() {
 function addOperationRow() {
     const row=document.createElement('tr'), index=operationIndex++;
     row.dataset.index = index;
-    row.innerHTML=`<td>
-        <select class="select product-select" name="items[${index}][product_id]" required>${productOptions()}</select>
+    row.innerHTML=`<td class="py-3">
+        <select class="select product-select text-xs font-bold" name="items[${index}][product_id]" required>${productOptions()}</select>
         <div class="options-container hidden"></div>
-    </td><td><span class="product-type badge-slate">—</span></td><td class="product-balance text-right font-bold">—</td><td><input class="input quantity" type="number" min="0.0001" step="0.0001" name="items[${index}][quantity]" value="1" required></td>${hasCost?`<td><input class="input unit-cost" type="number" min="0" step="0.0001" name="items[${index}][unit_cost]" value="0" required></td>`:''}${hasPrice?`<td><input class="input unit-price" type="number" min="0" step="0.0001" name="items[${index}][unit_price]" value="0" required></td><td class="line-total text-right font-bold">0.00</td>`:''}<td><button type="button" class="rounded-lg p-2 text-rose-600 hover:bg-rose-50" aria-label="ลบรายการ">✕</button></td>`;
+    </td>
+    <td class="py-3"><span class="product-type">—</span></td>
+    <td class="product-balance text-right font-bold text-slate-800 py-3">—</td>
+    <td class="py-3"><input class="input quantity font-bold text-slate-900" type="number" min="0.0001" step="0.0001" name="items[${index}][quantity]" value="1" required></td>
+    ${hasCost?`<td class="py-3"><input class="input unit-cost font-semibold" type="number" min="0" step="0.0001" name="items[${index}][unit_cost]" value="0" required></td>`:''}
+    ${hasPrice?`<td class="py-3"><input class="input unit-price font-semibold" type="number" min="0" step="0.0001" name="items[${index}][unit_price]" value="0" required></td><td class="line-total text-right font-bold text-blue-700 py-3">0.00</td>`:''}
+    <td class="text-center py-3"><button type="button" class="rounded-xl p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors" title="ลบรายการ">✕</button></td>`;
     operationRows.appendChild(row); operationEmpty.classList.add('hidden'); refreshSummary();
     row.querySelector('.product-select').addEventListener('change',()=>refreshRow(row));
     row.querySelector('.quantity').addEventListener('input',()=>refreshTotal(row));
