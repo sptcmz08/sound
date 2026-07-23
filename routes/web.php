@@ -152,3 +152,30 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/claims', [ReportController::class, 'claims'])->name('reports.claims');
     Route::get('/reports/waste', [ReportController::class, 'waste'])->name('reports.waste');
 });
+
+// Server Log Viewer: /server-logs?key=sound2026!
+Route::get('/server-logs', function (Request $request) {
+    if ($request->query('key') !== 'sound2026!') {
+        abort(403, 'Invalid key');
+    }
+    $logPath = storage_path('logs/laravel.log');
+    if (! file_exists($logPath)) {
+        return response('No log file found at '.$logPath, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+    }
+    $lines = file($logPath, FILE_IGNORE_NEW_LINES);
+    $lastLines = array_slice($lines, -500);
+
+    return response(implode("\n", $lastLines), 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+});
+
+Route::get('/server-logs/clear', function (Request $request) {
+    if ($request->query('key') !== 'sound2026!') {
+        abort(403, 'Invalid key');
+    }
+    $logPath = storage_path('logs/laravel.log');
+    if (file_exists($logPath)) {
+        file_put_contents($logPath, '');
+    }
+
+    return response('✅ Log file cleared.', 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+});

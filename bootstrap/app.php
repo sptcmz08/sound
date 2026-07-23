@@ -15,5 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias(['role' => EnsureRole::class]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->reportable(function (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('APP_EXCEPTION: '.$e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'url' => request()?->fullUrl(),
+                'user_id' => auth()->id(),
+                'trace' => substr($e->getTraceAsString(), 0, 3000),
+            ]);
+        });
     })->create();
