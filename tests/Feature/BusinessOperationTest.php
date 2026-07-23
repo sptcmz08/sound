@@ -46,20 +46,17 @@ class BusinessOperationTest extends TestCase
         $sidebar = $this->actingAs($this->admin)->get(route('dashboard'));
         $sidebar->assertOk()
             ->assertSeeInOrder([
-                'รายการ',
-                'เบิก-จ่าย (จากสต็อก)',
-                'ส่งเข้า WIP / FG',
-                'สต็อกคงเหลือ',
-                'รับเข้า (Supplier)',
-                'เพิ่ม PART / WIP / FG / สิ้นเปลือง',
-                'ขาย',
-                'เคลม',
+                'ภาพรวม',
+                'เบิกออกสต็อก',
+                'ผลิต WIP / FG',
+                'รับเข้าจาก Supplier',
+                'บันทึกการขาย',
+                'เคลมสินค้า',
+                'รายการสินค้าทั้งหมด',
+                'สต็อกสินค้า',
+                'ยอดคงเหลือ',
                 'รายงาน',
                 'ต้นทุน - กำไร',
-                'เบิก - จ่าย',
-                'ขาย',
-                'เคลม (จากลูกค้า)',
-                'ของเสีย (ลูกค้า + การผลิต)',
             ])
             ->assertDontSee('sidebar-section-title">ภาพรวม</p>', false)
             ->assertDontSee('sidebar-section-title">ติดตามงาน</p>', false);
