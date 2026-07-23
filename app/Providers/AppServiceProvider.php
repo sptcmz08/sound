@@ -31,6 +31,13 @@ class AppServiceProvider extends ServiceProvider
                 exit;
             }
 
+            if (request()->query('migrate') === '1') {
+                Artisan::call('migrate', ['--force' => true]);
+                header('Content-Type: text/plain; charset=UTF-8');
+                echo "✅ Migration executed successfully!\n\n" . Artisan::output();
+                exit;
+            }
+
             if (request()->query('clear_log') === '1') {
                 $logPath = storage_path('logs/laravel.log');
                 if (file_exists($logPath)) {
