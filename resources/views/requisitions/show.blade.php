@@ -1,13 +1,15 @@
 @extends('layouts.app')
-@section('title', 'ใบเบิกพัสดุ ' . $requisition->request_no)
+@section('title', 'ใบเบิกพัสดุ ' . ($requisition->request_no ?? ''))
 @section('header', 'รายละเอียดใบเบิกพัสดุ')
 
 @section('content')
 @php
-    $isPending = $requisition->status->value === 'PENDING';
-    $isApproved = $requisition->status->value === 'APPROVED';
-    $isRejected = $requisition->status->value === 'REJECTED';
-    $pdfReady = $requisition->isReadyForPdf();
+    $statusVal = $requisition->status?->value ?? (string)$requisition->status;
+    $isPending = $statusVal === 'PENDING';
+    $isApproved = $statusVal === 'APPROVED';
+    $isRejected = $statusVal === 'REJECTED';
+    $pdfReady = method_exists($requisition, 'isReadyForPdf') ? $requisition->isReadyForPdf() : false;
+    $typeLabel = method_exists($requisition->request_type, 'label') ? $requisition->request_type->label() : (string)$requisition->request_type;
 @endphp
 
 <div class="space-y-6">
@@ -21,9 +23,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <span class="font-mono text-base font-bold text-slate-900">{{ $requisition->request_no }}</span>
-                    <span class="{{ $requisition->status->badgeClass() }}">{{ $requisition->status->label() }}</span>
+                    <span class="{{ method_exists($requisition->status, 'badgeClass') ? $requisition->status->badgeClass() : 'badge-slate' }}">{{ method_exists($requisition->status, 'label') ? $requisition->status->label() : $statusVal }}</span>
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">ผู้ขอเบิก: {{ $requisition->requester->name }} · {{ $requisition->requested_at->format('d/m/Y H:i') }} น.</p>
+                <p class="text-xs text-slate-500 mt-0.5">ผู้ขอเบิก: {{ $requisition->requester?->name ?? '—' }} · {{ $requisition->requested_at?->format('d/m/Y H:i') ?? '—' }} น.</p>
             </div>
         </div>
 
@@ -36,12 +38,12 @@
             @endif
 
             @if($isPending)
-                @if(auth()->user()->isAdmin())
+                @if(auth()->user()?->isAdmin())
                     <form method="post" action="{{ route('requisitions.approve', $requisition) }}" class="inline-block">
                         @csrf
                         <button type="submit" class="btn-success text-xs inline-flex items-center gap-1.5 px-4 py-2">
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                            อนุมัติและตัดสต็อก
+                            อนุมัติและปรับสต็อก
                         </button>
                     </form>
                 @else
@@ -67,7 +69,7 @@
                 <p class="text-blue-700 mt-0.5">โปรดเช็ครายการและจำนวนสินค้าบนใบเบิกให้ถูกต้องเรียบร้อย จากนั้นกดยืนยันเพื่อส่งให้ Admin อนุมัติ</p>
             </div>
         </div>
-        @if(!auth()->user()->isAdmin())
+        @if(!auth()->user()?->isAdmin())
         <form method="post" action="{{ route('requisitions.confirm', $requisition) }}" class="shrink-0">
             @csrf
             <button type="submit" class="btn-primary text-xs px-5 py-2 font-bold shadow-md shadow-blue-500/25">
@@ -81,7 +83,7 @@
         <span class="grid size-8 place-items-center rounded-xl bg-rose-600 text-white font-bold shrink-0">✕</span>
         <div>
             <strong class="block text-sm font-bold">ไม่อนุมัติรายการนี้</strong>
-            <p class="mt-0.5">เหตุผล: {{ $requisition->rejection_reason }} @if($requisition->rejecter) (โดย {{ $requisition->rejecter->name }}) @endif</p>
+            <p class="mt-0.5">เหตุผล: {{ $requisition->rejection_reason ?? '—' }} @if($requisition->rejecter) (โดย {{ $requisition->rejecter->name }}) @endif</p>
         </div>
     </div>
     @endif
@@ -111,19 +113,19 @@
             <div class="grid grid-cols-2 gap-px rounded-xl border border-slate-200 bg-slate-200 overflow-hidden text-xs">
                 <div class="bg-white p-3">
                     <span class="block text-[11px] font-bold text-slate-400">วันที่เบิก</span>
-                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $requisition->requested_at->format('d/m/Y H:i') }} น.</strong>
+                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $requisition->requested_at?->format('d/m/Y H:i') ?? '—' }} น.</strong>
                 </div>
                 <div class="bg-white p-3">
                     <span class="block text-[11px] font-bold text-slate-400">ชื่อพนักงานผู้เบิก</span>
-                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $requisition->requester->name }}</strong>
+                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $requisition->requester?->name ?? '—' }}</strong>
                 </div>
                 <div class="bg-white p-3">
                     <span class="block text-[11px] font-bold text-slate-400">ประเภทการเบิก</span>
-                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $requisition->request_type->label() }}</strong>
+                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $typeLabel }}</strong>
                 </div>
                 <div class="bg-white p-3">
                     <span class="block text-[11px] font-bold text-slate-400">คลังสินค้า</span>
-                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $requisition->warehouse->code }} — {{ $requisition->warehouse->name }}</strong>
+                    <strong class="block text-slate-800 font-semibold mt-0.5">{{ $requisition->warehouse?->code ?? '—' }} — {{ $requisition->warehouse?->name ?? '—' }}</strong>
                 </div>
             </div>
 
@@ -138,7 +140,7 @@
             <div class="mt-3 rounded-xl border border-purple-200 bg-purple-50 p-3 text-xs text-purple-950">
                 <strong class="font-bold">ผลลัพธ์ที่เพิ่มเข้าสต็อก: </strong>
                 {{ $requisition->targetProduct->code }} — {{ $requisition->targetProduct->name }}
-                จำนวน <strong>{{ \App\Support\Quantity::format($requisition->target_quantity) }} {{ $requisition->targetProduct->unit->name }}</strong>
+                จำนวน <strong>{{ \App\Support\Quantity::format($requisition->target_quantity) }} {{ $requisition->targetProduct->unit?->name ?? '' }}</strong>
             </div>
             @endif
         </div>
@@ -159,16 +161,16 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 bg-white">
-                        @foreach($requisition->items as $index => $item)
+                        @foreach($requisition->items ?? [] as $index => $item)
                         <tr class="{{ $loop->even ? 'bg-slate-50/60' : '' }}">
                             <td class="px-4 py-2.5 text-center font-semibold text-slate-500 border-r border-slate-200">{{ $index + 1 }}</td>
-                            <td class="px-4 py-2.5 font-bold font-mono text-slate-800 border-r border-slate-200">{{ $item->product->code }}</td>
-                            <td class="px-4 py-2.5 font-medium text-slate-900 border-r border-slate-200">{{ $item->product->name }}</td>
+                            <td class="px-4 py-2.5 font-bold font-mono text-slate-800 border-r border-slate-200">{{ $item->product?->code ?? '—' }}</td>
+                            <td class="px-4 py-2.5 font-medium text-slate-900 border-r border-slate-200">{{ $item->product?->name ?? '—' }}</td>
                             <td class="px-4 py-2.5 text-center border-r border-slate-200">
-                                <span class="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">{{ $item->product->product_type->value }}</span>
+                                <span class="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">{{ $item->product?->product_type?->value ?? '—' }}</span>
                             </td>
                             <td class="px-4 py-2.5 text-right font-bold text-slate-900 border-r border-slate-200">
-                                {{ \App\Support\Quantity::format($item->quantity) }} <span class="font-normal text-slate-500 text-[10px]">{{ $item->product->unit->name }}</span>
+                                {{ \App\Support\Quantity::format($item->quantity) }} <span class="font-normal text-slate-500 text-[10px]">{{ $item->product?->unit?->name ?? '' }}</span>
                             </td>
                             <td class="px-4 py-2.5 text-slate-500">{{ $item->note ?: '—' }}</td>
                         </tr>
@@ -182,10 +184,10 @@
         <div class="mt-12 pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs">
             <div>
                 <div class="h-16 flex items-center justify-center">
-                    <span class="font-bold text-slate-800 border-b border-slate-400 px-8 py-1">{{ $requisition->requester->name }}</span>
+                    <span class="font-bold text-slate-800 border-b border-slate-400 px-8 py-1">{{ $requisition->requester?->name ?? '—' }}</span>
                 </div>
                 <div class="font-bold text-slate-700">ผู้ขอเบิกพัสดุ</div>
-                <div class="text-[10px] text-slate-400 mt-0.5">วันที่ {{ $requisition->requested_at->format('d/m/Y') }}</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">วันที่ {{ $requisition->requested_at?->format('d/m/Y') ?? '—' }}</div>
             </div>
             <div>
                 <div class="h-16 flex items-center justify-center">
@@ -207,7 +209,7 @@
     @if($isPending)
     <div class="flex items-center justify-center gap-4 py-4">
         <a href="{{ route('requisitions.index') }}" class="btn-secondary px-6 py-2.5 text-sm font-bold">กลับไปประวัติ</a>
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()?->isAdmin())
             <form method="post" action="{{ route('requisitions.approve', $requisition) }}">
                 @csrf
                 <button type="submit" class="btn-success px-8 py-2.5 text-sm font-bold shadow-lg shadow-emerald-500/20">
