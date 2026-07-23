@@ -102,6 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/requisitions', [RequisitionController::class, 'store'])->name('requisitions.store');
     });
     Route::get('/requisitions/{requisition}', [RequisitionController::class, 'show'])->name('requisitions.show');
+    Route::post('/requisitions/{requisition}/confirm', [RequisitionController::class, 'confirm'])->name('requisitions.confirm');
     Route::get('/requisitions/{requisition}/print', [RequisitionController::class, 'print'])->name('requisitions.print');
     Route::get('/requisitions/{requisition}/pdf', [RequisitionController::class, 'pdf'])->name('requisitions.pdf');
     Route::post('/requisitions/{requisition}/sign', [RequisitionController::class, 'sign'])->name('requisitions.sign');

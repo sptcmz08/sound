@@ -53,6 +53,6 @@ class Requisition extends Model
 
     public function isReadyForPdf(): bool
     {
-        return $this->status === RequisitionStatus::APPROVED;
+        return in_array($this->status, [RequisitionStatus::PENDING, RequisitionStatus::APPROVED], true);
     }
 }

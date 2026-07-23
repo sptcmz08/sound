@@ -224,8 +224,16 @@ class RequisitionController extends Controller
         });
 
         return redirect()->route('requisitions.show', $requisition)->with('success', $request->user()->isAdmin()
-            ? 'บันทึก อนุมัติ และปรับสต็อกเรียบร้อยแล้ว'
-            : 'สร้างใบเบิกแล้ว กรุณารอ Admin ตรวจสอบและอนุมัติ');
+            ? 'บันทึก อนุมัติ และปรับสต็อกเรียบร้อยแล้ว ใบเบิกพร้อมเปิดดู'
+            : 'สร้างใบเบิกสำเร็จ กรุณาตรวจสอบเอกสารใบเบิกพัสดุด้านล่าง แล้วกดยืนยันส่งคำขอให้ Admin');
+    }
+
+    public function confirm(Request $request, Requisition $requisition)
+    {
+        abort_unless($request->user()->isAdmin() || $requisition->requested_by === $request->user()->id, 403);
+
+        return redirect()->route('requisitions.show', $requisition)
+            ->with('success', "ยืนยันส่งคำขอใบเบิก {$requisition->request_no} ให้ Admin อนุมัติเรียบร้อยแล้ว");
     }
 
     public function show(Request $request, Requisition $requisition)
