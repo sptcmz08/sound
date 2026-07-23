@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Casts\FlexibleDecimal;
+use App\Casts\SafeRequisitionStatusCast;
+use App\Casts\SafeRequisitionTypeCast;
 use App\Enums\RequisitionStatus;
 use App\Enums\RequisitionType;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +15,7 @@ class Requisition extends Model
 
     protected function casts(): array
     {
-        return ['request_type' => RequisitionType::class, 'status' => RequisitionStatus::class, 'target_quantity' => FlexibleDecimal::class, 'requested_at' => 'datetime', 'requester_signed_at' => 'datetime', 'approved_at' => 'datetime', 'rejected_at' => 'datetime'];
+        return ['request_type' => SafeRequisitionTypeCast::class, 'status' => SafeRequisitionStatusCast::class, 'target_quantity' => FlexibleDecimal::class, 'requested_at' => 'datetime', 'requester_signed_at' => 'datetime', 'approved_at' => 'datetime', 'rejected_at' => 'datetime'];
     }
 
     public function items()
